@@ -22,6 +22,9 @@ android {
 
     buildTypes {
         release {
+            // Same key as the debug APKs installed so far (Build > Generate APKs), so a release APK
+            // installs as an update and keeps the user's lists. Not valid for publishing on Google Play.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
