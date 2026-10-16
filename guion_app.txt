@@ -82,5 +82,5 @@ Al pulsar 'Revisar Lista' el progreso se borra y la lista vuelve a quedar sin ta
 3. Gestionar las listas (sustituye a mantener pulsada una lista para eliminarla):
 En 'Mis listas' cada lista (excepto 'Productos que me faltan') tiene dos botones a la derecha:
 	a. Lápiz: renombrar la lista. Se abre una ventana con el nombre actual seleccionado para escribir el nuevo.
-	b. Papelera: eliminar la lista.
+	b. Papelera: eliminar la lista. Antes de eliminarla aparece un 'pop up': '¿Eliminar la lista [NOMBRE_LISTA]?' con el número de productos, el botón 'Eliminar Lista' y una cruz para cancelar.
 Al eliminar una lista, o un producto (desde el 'pop up' del producto), aparece abajo durante unos segundos el mensaje '[NOMBRE] eliminado/a' con el botón 'Deshacer', que lo recupera en el mismo sitio.

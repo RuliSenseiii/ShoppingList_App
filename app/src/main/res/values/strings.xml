@@ -89,6 +89,7 @@
     <string name="product_deleted">\"%1$s\" eliminado</string>
     <string name="list_deleted">Lista \"%1$s\" eliminada</string>
     <string name="rename_list">Renombrar lista</string>
+    <string name="delete_list_question">¿Eliminar la lista \"%1$s\"?</string>
     <string name="cart_progress_sub">🛒 %1$d de %2$d en el carro</string>
 
     <string name="empty_list_hint">Pulsa \"Añadir producto\" para empezar a llenarla.</string>

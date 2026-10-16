@@ -20,6 +20,8 @@ import androidx.core.content.ContextCompat
 import com.example.shoppinglist.data.Category
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.ShoppingList
+import com.example.shoppinglist.ui.PopupAction
+import com.example.shoppinglist.ui.PopupBadge
 import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.addEmptyState
 import com.example.shoppinglist.ui.applySystemBarInsets
@@ -203,14 +205,25 @@ class ListsActivity : AppCompatActivity() {
         }
     }
 
-    /** Deletes straight away; "Deshacer" brings the list back for a few seconds. */
+    /** Asks first; once deleted, "Deshacer" still brings the list back for a few seconds. */
     private fun delete(list: ShoppingList) {
-        val deleted = repository.deleteList(list.id) ?: return
-        render()
-        showUndo(getString(R.string.list_deleted, list.name)) {
-            repository.restoreList(deleted)
-            render()
-        }
+        Popups.show(
+            activity = this,
+            title = getString(R.string.delete_list_question, list.name),
+            subtitle = resources.getQuantityString(R.plurals.products_count, list.products.size, list.products.size),
+            badge = PopupBadge("🗑️", ContextCompat.getColor(this, R.color.orange)),
+            actions = listOf(
+                PopupAction(getString(R.string.delete_list), R.drawable.ic_delete, green = false) {
+                    val deleted = repository.deleteList(list.id) ?: return@PopupAction
+                    render()
+                    showUndo(getString(R.string.list_deleted, list.name)) {
+                        repository.restoreList(deleted)
+                        render()
+                    }
+                },
+            ),
+            showClose = true,
+        )
     }
 
     companion object {
