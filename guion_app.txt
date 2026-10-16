@@ -1,0 +1,47 @@
+Esta es una aplicación para hacer la lista de la compra.
+
+Debe ser sencilla y rápida de usar por lo que debe seguir lo siguiente:
+
+-Colores principales: blanco, verde y naranja, predomina el blanco.
+
+-Pantalla principal (Todo debe verse sin necesidad de desplazarse): 
+	-Titulo 'Header': Bienvenida a tu lista de la compra
+	-Tres banners que actúan como botón:
+		1. Ver mis listas de la compra
+		2. Crear nueva lista
+		3. Añadir producto
+	-Un gran botón centrado abajo 'VOY A COMPRAR'
+
+Las listas de la compra se pueden rellenar de dos formas, creándola entera del tiron o ir editándola (se crea desde opción 2 y se edita desde opción 1). Además se crea una lista adicional mediante 'opción 3' que se llama 'Productos que me faltan', esta se puede ver en 'opción 1'.
+
+Para crear la lista de la compra:
+Se van a añadir productos uno a uno, el usuario pone el nombre del producto, después selecciona la categoría mediante un desplegable: (pasta/arroz, carne, pescado, marisco, lácteos, conservas,  verdura, fruta, otros) [Cada categoría aparece con 1 único emoji delante del nombre identificando el producto]
+Por último, el usuario, una vez ha añadido el nombre del producto y la categoría debe añadir la cantidad. (Kilogramos para (pasta/arroz, carne, pescado, marisco) y unidades para (lácteos, conservas, verdura, fruta, otros))
+Una vez estos campos están rellenos aparece la opción añadir, al clicarle:
+ a. se añade a la lista que se esta editando (si ha accedido desde la opción editar lista de la opción 1)
+ b. se añade a la nueva lista que esta creando (si ha accedido desde la opción 1)
+ c. se añade a la lista 'Productos que me faltan' (si ha accedido desde la opción 3)
+
+Las listas de la compra, una vez dentro de ellas se verán separadas por categoría, con el titulo de la categoría en su color apropiado sobre una linea de '----'. Apareceran ahí los productos añadidos en la izquierda y a su derecha la cantidad.
+Para distinguirse y no acumularse cada linea de producto variara entre dos colores blanco y beig (pintando las celdas).
+
+Si el usuario clica encima de un producto le saldra la opción:
+	a. Eliminar producto (el producto se elimina de la lista)
+	b. Editar cantidad (le permite editar la cantidad)
+	c. Cruz para cerrar el 'pop up'
+
+Cuando el usuario entre en el botón 'VOY A COMPRAR' primero de todo vera las listas que tiene hechas y accederá a una de ellas. Al acceder a la lista se mostrara un mensaje '¿Ver lista de 'productos que me faltan'?' con dos opciones, si o no.
+	si. Se añadirán los productos de la lista de 'productos que me faltan' a la lista que va a comprar.
+	no. Se cierra el mensaje y el usuario ve la lista normal.  
+ 
+Se verán de igual forma que en la opción 1 pero esta vez, al clicar en el producto le saldrá un 'pop up' que dirá: '[NOMBRE_PRODUCTO] [CANTIDAD]' y dos botones:
+	1. En el carro (se cierra el 'pop up' y se muestra el producto tachado de la lista con una linea irregular sobre toda su celda simulando un garabato)
+	2. Falta (se cierra el 'pop up', el producto no se modifica)
+
+Una vez todos los productos están 'en el carro' aparece un mensaje: 'Has completado la lista' y dos opciones:
+	1. Eliminar Lista (se elimina la lista y vuelves a la pagina principal)
+	2. Revisar Lista (vuelves a ver la lista completa con los productos sin tachar, al final de la lista aparece un botón 'Eliminar Lista')
+
+
+IMPORTANTE:
+	En todas las pantallas (excepto la principal) arriba a la izquierda hay un botón con una flecha apuntando a la izquierda, presionarlo envía a la pantalla anterior.

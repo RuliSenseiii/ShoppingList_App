@@ -1,0 +1,74 @@
+<resources>
+    <string name="app_name">Lista de la compra</string>
+
+    <string name="main_header">Bienvenida a tu lista de la compra</string>
+    <string name="banner_my_lists">Ver mis listas de la compra</string>
+    <string name="banner_new_list">Crear nueva lista</string>
+    <string name="banner_add_product">Añadir producto</string>
+    <string name="go_shopping">VOY A COMPRAR</string>
+
+    <string name="back">Volver</string>
+    <string name="close">Cerrar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="save">Guardar</string>
+    <string name="yes">Sí</string>
+    <string name="no">No</string>
+
+    <string name="missing_list_name">Productos que me faltan</string>
+    <string name="my_lists_title">Mis listas</string>
+    <string name="choose_list_title">¿Qué lista vas a comprar?</string>
+    <string name="no_lists">Todavía no tienes listas. Créalas desde \"Crear nueva lista\".</string>
+    <string name="empty_list">Esta lista está vacía.</string>
+    <plurals name="products_count">
+        <item quantity="one">%1$d producto</item>
+        <item quantity="other">%1$d productos</item>
+    </plurals>
+    <string name="delete_list_question">¿Eliminar la lista \"%1$s\"?</string>
+    <string name="delete">Eliminar</string>
+
+    <string name="new_list_title">Nueva lista</string>
+    <string name="new_list_name_hint">Nombre de la lista</string>
+    <string name="new_list_default_name">Lista %1$d</string>
+    <string name="create">Crear</string>
+
+    <string name="product_name_hint">Nombre del producto</string>
+    <string name="category_hint">Selecciona una categoría</string>
+    <string name="quantity_kg_hint">Cantidad</string>
+    <string name="quantity_units_hint">Cantidad</string>
+    <string name="add">Añadir</string>
+    <string name="added_to">Añadido a \"%1$s\"</string>
+    <string name="add_product">Añadir producto</string>
+    <string name="adding_to">Añadiendo a: %1$s</string>
+    <string name="current_products">Productos en la lista</string>
+
+    <string name="delete_product">Eliminar producto</string>
+    <string name="edit_quantity">Editar cantidad</string>
+    <string name="invalid_quantity">Introduce una cantidad válida</string>
+
+    <string name="show_missing_question">¿Ver lista de \'productos que me faltan\'?</string>
+    <string name="in_cart">En el carro</string>
+    <string name="missing">Falta</string>
+    <string name="list_completed">Has completado la lista</string>
+    <string name="delete_list">Eliminar Lista</string>
+    <string name="review_list">Revisar Lista</string>
+    <string name="main_subtitle">Planifica, compra y tacha sin complicaciones</string>
+    <string name="banner_new_list_sub">Empieza una lista desde cero</string>
+    <string name="banner_my_lists_empty">Aún no tienes listas</string>
+    <plurals name="banner_my_lists_sub">
+        <item quantity="one">%1$d lista guardada</item>
+        <item quantity="other">%1$d listas guardadas</item>
+    </plurals>
+    <string name="banner_add_product_empty">Apunta lo que se te acaba</string>
+    <plurals name="banner_add_product_sub">
+        <item quantity="one">%1$d producto apuntado</item>
+        <item quantity="other">%1$d productos apuntados</item>
+    </plurals>
+    <string name="form_title">¿Qué necesitas?</string>
+    <string name="unit_kg">kg</string>
+    <string name="unit_units">uds</string>
+    <string name="cart_progress_title">🛒 En el carro</string>
+    <string name="cart_progress_count">%1$d / %2$d</string>
+    <string name="list_completed_sub">¡Todo en el carro! ¿Qué quieres hacer con la lista?</string>
+    <string name="show_missing_sub">Se añadirán a esta lista para que no se te olvide nada.</string>
+    <string name="empty_list_hint">Pulsa \"Añadir producto\" para empezar a llenarla.</string>
+</resources>

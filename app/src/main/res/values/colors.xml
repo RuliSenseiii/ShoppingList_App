@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#FFFFFFFF</color>
+    <color name="page_bg">#FFF6F8F3</color>
+
+    <color name="green">#FF2E7D32</color>
+    <color name="green_dark">#FF1B5E20</color>
+    <color name="green_mid">#FF43A047</color>
+    <color name="green_soft">#FF81C784</color>
+    <color name="green_light">#FFE8F5E9</color>
+
+    <color name="orange">#FFF57C00</color>
+    <color name="orange_dark">#FFE65100</color>
+    <color name="orange_deep">#FFF4511E</color>
+    <color name="orange_soft">#FFFFB74D</color>
+    <color name="orange_light">#FFFFF3E0</color>
+
+    <color name="beige">#FFF5EEDC</color>
+    <color name="text_dark">#FF263238</color>
+    <color name="text_muted">#FF78909C</color>
+    <color name="scribble">#E6455A64</color>
+    <color name="white_translucent">#33FFFFFF</color>
+
+    <color name="cat_pasta">#FFB8860B</color>
+    <color name="cat_carne">#FFC62828</color>
+    <color name="cat_pescado">#FF1565C0</color>
+    <color name="cat_marisco">#FFEF6C00</color>
+    <color name="cat_lacteos">#FF00838F</color>
+    <color name="cat_conservas">#FF6D4C41</color>
+    <color name="cat_verdura">#FF2E7D32</color>
+    <color name="cat_fruta">#FFD81B60</color>
+    <color name="cat_otros">#FF546E7A</color>
+</resources>

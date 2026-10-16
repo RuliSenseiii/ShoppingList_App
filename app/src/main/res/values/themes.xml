@@ -1,0 +1,24 @@
+<resources>
+    <style name="Theme.ShoppingList" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/green</item>
+        <item name="colorPrimaryVariant">@color/green_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/orange</item>
+        <item name="colorSecondaryVariant">@color/orange_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:windowBackground">@color/page_bg</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.ShoppingList.Dialog</item>
+    </style>
+
+    <!-- Rounded, airy dialogs. -->
+    <style name="ThemeOverlay.ShoppingList.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.ShoppingList.Dialog</item>
+        <item name="colorPrimary">@color/green</item>
+        <item name="colorSecondary">@color/orange</item>
+    </style>
+
+    <style name="ShapeAppearance.ShoppingList.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">24dp</item>
+    </style>
+</resources>

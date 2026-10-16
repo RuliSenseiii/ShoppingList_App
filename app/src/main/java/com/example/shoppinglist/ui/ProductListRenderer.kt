@@ -1,0 +1,131 @@
+package com.example.shoppinglist.ui
+
+import android.graphics.Color
+import android.graphics.Typeface
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
+import java.util.Locale
+import androidx.core.content.ContextCompat
+import com.example.shoppinglist.R
+import com.example.shoppinglist.data.Category
+import com.example.shoppinglist.data.Product
+
+/**
+ * Fills [container] with the products grouped by category: a coloured category title (emoji badge
+ * + product count) over a "----" line, then a rounded card with one row per product (name left,
+ * quantity right) alternating white/beige.
+ */
+object ProductListRenderer {
+
+    fun render(
+        container: LinearLayout,
+        products: List<Product>,
+        crossedIds: Set<String> = emptySet(),
+        onProductClick: ((Product) -> Unit)? = null,
+    ) {
+        container.removeAllViews()
+        val context = container.context
+        val inflater = LayoutInflater.from(context)
+
+        Category.entries.forEach { category ->
+            val items = products.filter { it.category == category }
+            if (items.isEmpty()) return@forEach
+            val color = ContextCompat.getColor(context, category.colorRes)
+
+            // Header: emoji badge, coloured title and a count chip.
+            val header = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, context.dp(20), 0, 0)
+            }
+            header.addView(TextView(context).apply {
+                text = category.emoji
+                textSize = 20f
+                setTextColor(Color.BLACK)
+                gravity = Gravity.CENTER
+                background = roundedBackground(soft(color), 0f, oval = true)
+            }, LinearLayout.LayoutParams(context.dp(42), context.dp(42)))
+            header.addView(TextView(context).apply {
+                text = category.label
+                textSize = 20f
+                setTypeface(typeface, Typeface.BOLD)
+                setTextColor(color)
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = context.dp(12)
+            })
+            header.addView(TextView(context).apply {
+                text = String.format(Locale.getDefault(), "%d", items.size)
+                textSize = 13f
+                setTypeface(typeface, Typeface.BOLD)
+                setTextColor(color)
+                gravity = Gravity.CENTER
+                minWidth = context.dp(30)
+                setPadding(context.dp(10), context.dp(3), context.dp(10), context.dp(3))
+                background = roundedBackground(soft(color), context.dp(100).toFloat())
+            })
+            container.addView(header)
+
+            container.addView(TextView(context).apply {
+                text = "-".repeat(200)
+                maxLines = 1
+                setHorizontallyScrolling(true)
+                typeface = Typeface.MONOSPACE
+                textSize = 14f
+                setTextColor(color)
+                setPadding(0, context.dp(2), 0, context.dp(6))
+            })
+
+            // Rounded card holding the rows; clipToOutline keeps the row colours inside the corners.
+            val card = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundResource(R.drawable.bg_card_plain)
+                clipToOutline = true
+                elevation = context.dp(2).toFloat()
+            }
+            items.forEachIndexed { index, product ->
+                card.addView(productRow(inflater, card, product, index, color, product.id in crossedIds, onProductClick))
+            }
+            container.addView(
+                card,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    .apply { bottomMargin = context.dp(4) },
+            )
+        }
+    }
+
+    private fun productRow(
+        inflater: LayoutInflater,
+        parent: LinearLayout,
+        product: Product,
+        index: Int,
+        color: Int,
+        crossed: Boolean,
+        onProductClick: ((Product) -> Unit)?,
+    ): View {
+        val context = parent.context
+        val item = inflater.inflate(R.layout.item_product, parent, false)
+        val rowColor = if (index % 2 == 0) R.color.white else R.color.beige
+        item.findViewById<View>(R.id.row).setBackgroundColor(ContextCompat.getColor(context, rowColor))
+        item.findViewById<View>(R.id.dot).background = roundedBackground(color, 0f, oval = true)
+        item.findViewById<TextView>(R.id.tvName).text = product.name
+        item.findViewById<TextView>(R.id.tvQuantity).apply {
+            text = product.formattedQuantity
+            setTextColor(color)
+            background = roundedBackground(soft(color, 0x1A), context.dp(100).toFloat())
+        }
+        item.findViewById<View>(R.id.row).alpha = if (crossed) 0.55f else 1f
+        item.findViewById<ScribbleView>(R.id.scribble).apply {
+            visibility = if (crossed) View.VISIBLE else View.GONE
+            seed = product.id.hashCode()
+        }
+        if (onProductClick != null) {
+            item.setOnClickListener { onProductClick(product) }
+        } else {
+            item.foreground = null
+        }
+        return item
+    }
+}
