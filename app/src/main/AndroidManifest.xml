@@ -20,13 +20,29 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- Receives lists shared from chat apps ("Compartir" on the message). -->
+        <!--
+            Receives lists from other apps:
+            - Tapping a ".listacompra" file (VIEW). Chat apps and file managers may label it with our
+              own type or as a generic binary file; the content is checked before importing.
+            - Sharing the file, or a V0.2/V0.3 message with a text code, with the app (SEND).
+        -->
         <activity
             android:name=".ListsActivity"
             android:exported="true">
             <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/vnd.example.listacompra" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.example.listacompra" />
+                <data android:mimeType="application/octet-stream" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
@@ -35,6 +51,17 @@
             android:name=".AddProductActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ShoppingActivity" />
+
+        <!-- Lets chat apps read the ".listacompra" file being sent. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

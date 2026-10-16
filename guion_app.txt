@@ -84,3 +84,20 @@ En 'Mis listas' cada lista (excepto 'Productos que me faltan') tiene dos botones
 	a. Lápiz: renombrar la lista. Se abre una ventana con el nombre actual seleccionado para escribir el nuevo.
 	b. Papelera: eliminar la lista. Antes de eliminarla aparece un 'pop up': '¿Eliminar la lista [NOMBRE_LISTA]?' con el número de productos, el botón 'Eliminar Lista' y una cruz para cancelar.
 Al eliminar una lista, o un producto (desde el 'pop up' del producto), aparece abajo durante unos segundos el mensaje '[NOMBRE] eliminado/a' con el botón 'Deshacer', que lo recupera en el mismo sitio.
+
+
+V0.4 - ENVIAR LISTAS COMO ARCHIVO (sustituye al envío como texto con código de la V0.2):
+
+Enviar una lista:
+El botón 'Compartir' (arriba a la derecha dentro de una lista) crea un archivo propio de la app con el nombre de la lista, por ejemplo 'Compra del finde.listacompra', y abre el menú de compartir del móvil (WhatsApp, Telegram, correo...) para enviarlo como documento, con el mensaje: '🛒 [NOMBRE_LISTA] ([N] productos). Ábrela con la app Lista de la compra.'
+Por dentro el archivo es un CSV (se puede abrir también con una hoja de cálculo):
+	listacompra,1,[NOMBRE_LISTA]
+	producto,categoria,cantidad
+	[PRODUCTO],[CATEGORIA],[CANTIDAD]
+Si la lista está vacía no se puede compartir y se muestra un aviso.
+
+Recibir una lista:
+	1. Al tocar el archivo recibido se abre la app directamente con el 'pop up' '¿Añadir [NOMBRE_LISTA] a tus listas?' (si el móvil pregunta con qué aplicación abrirlo, se elige 'Lista de la compra').
+	2. También se puede compartir el archivo con la app, o pulsar 'Importar lista' en 'Mis listas', que abre el selector de archivos para elegirlo (por ejemplo, desde Descargas).
+Al pulsar 'Añadir a mis listas' se guarda como una lista nueva y se abre. Si el archivo no contiene una lista se muestra el aviso: 'No se ha encontrado ninguna lista para importar.'
+Los mensajes con código enviados desde la V0.2 y la V0.3 se pueden seguir importando compartiendo el mensaje con la app.

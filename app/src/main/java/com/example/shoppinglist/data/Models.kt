@@ -29,6 +29,9 @@ data class ProductSuggestion(val name: String, val category: Category) {
     override fun toString(): String = name
 }
 
+/** A list received from someone else, not yet saved. */
+data class SharedList(val name: String, val products: List<Product>)
+
 data class ShoppingList(
     val id: String = UUID.randomUUID().toString(),
     var name: String,

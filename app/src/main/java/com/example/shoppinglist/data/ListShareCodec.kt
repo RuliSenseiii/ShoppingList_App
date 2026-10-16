@@ -2,36 +2,21 @@ package com.example.shoppinglist.data
 
 import android.util.Base64
 import android.util.Log
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import java.util.zip.Deflater
 import java.util.zip.Inflater
 
 /**
- * Turns a list into a short text code ("LDC1:...") that can travel inside any chat message, and back.
- * The code is the list as compact JSON, compressed and Base64 encoded. Standard Base64 is used on
- * purpose: chat apps treat "_" and "-" as formatting, but leave "+", "/" and "=" alone.
+ * Reads the text code that V0.2 and V0.3 put at the end of a shared message ("LDC1:..."), so lists
+ * sent by those versions can still be imported. Since V0.4 lists are sent as a [ListFileFormat] file.
+ * The code is the list as compact JSON, compressed and Base64 encoded.
  */
 object ListShareCodec {
 
-    private const val PREFIX = "LDC1:"
     private val CODE_REGEX = Regex("""LDC1:([A-Za-z0-9+/=]+)""")
     private const val MAX_DECODED_BYTES = 256 * 1024
     private const val MAX_PRODUCTS = 500
     private const val TAG = "ListShareCodec"
-
-    /** A list received from someone else, not yet saved. */
-    data class SharedList(val name: String, val products: List<Product>)
-
-    fun encode(list: ShoppingList): String {
-        val products = JSONArray()
-        list.products.forEach { p ->
-            products.put(JSONArray().put(p.name).put(p.category.name).put(p.quantity))
-        }
-        val json = JSONObject().put("n", list.name).put("p", products).toString()
-        return PREFIX + Base64.encodeToString(deflate(json.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
-    }
 
     /** True if [text] seems to contain a list code, without decoding it. */
     fun containsCode(text: CharSequence?): Boolean = text != null && CODE_REGEX.containsMatchIn(text)
@@ -49,35 +34,12 @@ object ListShareCodec {
             val productsJson = obj.getJSONArray("p")
             val products = (0 until minOf(productsJson.length(), MAX_PRODUCTS)).mapNotNull { i ->
                 val p = productsJson.optJSONArray(i) ?: return@mapNotNull null
-                val productName = p.optString(0).trim().take(80)
-                // An unknown category (e.g. from a newer version of the app) falls back to "Otros".
-                val category = Category.entries.firstOrNull { it.name == p.optString(1) } ?: Category.OTROS
-                var quantity = p.optDouble(2, Double.NaN)
-                if (!category.usesKilograms) quantity = Math.round(quantity).toDouble()
-                if (productName.isEmpty() || quantity.isNaN() || quantity <= 0.0 || quantity > 1_000_000) {
-                    null
-                } else {
-                    Product(name = productName, category = category, quantity = quantity)
-                }
+                ListFileFormat.sharedProduct(p.optString(0), p.optString(1), p.optDouble(2, Double.NaN))
             }
             if (name.isEmpty() && products.isEmpty()) null else SharedList(name, products)
         } catch (e: Exception) {
             Log.w(TAG, "Unreadable list code", e)
             null
-        }
-    }
-
-    private fun deflate(input: ByteArray): ByteArray {
-        val deflater = Deflater(Deflater.BEST_COMPRESSION)
-        return try {
-            deflater.setInput(input)
-            deflater.finish()
-            val out = ByteArrayOutputStream()
-            val buffer = ByteArray(1024)
-            while (!deflater.finished()) out.write(buffer, 0, deflater.deflate(buffer))
-            out.toByteArray()
-        } finally {
-            deflater.end()
         }
     }
 

@@ -1,61 +1,86 @@
 package com.example.shoppinglist.ui
 
 import android.app.Activity
-import android.content.ClipboardManager
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.widget.EditText
-import android.widget.FrameLayout
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.example.shoppinglist.ListsActivity
 import com.example.shoppinglist.R
 import com.example.shoppinglist.data.Category
+import com.example.shoppinglist.data.ListFileFormat
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.ListShareCodec
+import com.example.shoppinglist.data.SharedList
 import com.example.shoppinglist.data.ShoppingList
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.io.ByteArrayOutputStream
+import java.io.File
+
+private const val TAG = "Sharing"
+
+/** Folder in the app cache for the files being sent; [R.xml.file_paths] exposes it to other apps. */
+private const val SHARED_DIR = "shared"
 
 /**
- * Sends [list] through any app (WhatsApp, Telegram, email...). The message is readable on its own,
- * grouped by category, and ends with a code the receiver's app uses to import the list.
+ * Sends [list] as a ".listacompra" file through any app (WhatsApp, Telegram, email...). Tapping the
+ * file on the receiver's phone opens this app, ready to import it.
  */
 fun Activity.shareList(list: ShoppingList) {
     if (list.products.isEmpty()) {
         Toast.makeText(this, R.string.share_empty_list, Toast.LENGTH_LONG).show()
         return
     }
-    val text = buildString {
-        appendLine(getString(R.string.share_message_title, list.name))
-        Category.entries.forEach { category ->
-            val items = list.products.filter { it.category == category }
-            if (items.isEmpty()) return@forEach
-            appendLine()
-            appendLine(category.displayName)
-            items.forEach { appendLine("• ${it.name} — ${it.formattedQuantity}") }
+    val uri = try {
+        val dir = File(cacheDir, SHARED_DIR).apply {
+            mkdirs()
+            // Old files are not needed once sent.
+            listFiles()?.forEach { it.delete() }
         }
-        appendLine()
-        appendLine(getString(R.string.share_message_import))
-        append(ListShareCodec.encode(list))
+        val file = File(dir, ListFileFormat.fileName(list))
+        file.writeText(ListFileFormat.write(list), Charsets.UTF_8)
+        FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+    } catch (e: Exception) {
+        Log.e(TAG, "Could not create the list file", e)
+        Toast.makeText(this, R.string.share_failed, Toast.LENGTH_LONG).show()
+        return
     }
+    val count = resources.getQuantityString(R.plurals.products_count, list.products.size, list.products.size)
     val send = Intent(Intent.ACTION_SEND)
-        .setType("text/plain")
+        .setType(ListFileFormat.MIME_TYPE)
+        .putExtra(Intent.EXTRA_STREAM, uri)
         .putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_message_title, list.name))
-        .putExtra(Intent.EXTRA_TEXT, text)
+        .putExtra(Intent.EXTRA_TEXT, getString(R.string.share_file_caption, list.name, count))
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     val chooser = Intent.createChooser(send, getString(R.string.share_list))
         // Sharing the list with this same app would just import a copy of it.
         .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(ComponentName(this, ListsActivity::class.java)))
     startActivity(chooser)
 }
 
-/**
- * Imports the list contained in [text] after asking the user. Calls [onImported] with the new list,
- * or shows an error if the text has no valid list code.
- */
-fun Activity.importSharedList(text: CharSequence?, onImported: (ShoppingList) -> Unit) {
-    val shared = ListShareCodec.decode(text)
+/** Imports a received ".listacompra" file after asking the user. */
+fun Activity.importSharedFile(uri: Uri, onImported: (ShoppingList) -> Unit) {
+    val shared = try {
+        readText(uri)?.let { ListFileFormat.read(it) }
+    } catch (e: Exception) {
+        Log.w(TAG, "Could not read the received file", e)
+        null
+    }
+    confirmImport(shared, onImported)
+}
+
+/** Imports a list from a V0.2/V0.3 message with a text code, after asking the user. */
+fun Activity.importSharedText(text: CharSequence?, onImported: (ShoppingList) -> Unit) {
+    confirmImport(ListShareCodec.decode(text), onImported)
+}
+
+/** Types the file picker offers: chat apps and file managers often label unknown files as binary. */
+val IMPORT_FILE_TYPES = arrayOf(ListFileFormat.MIME_TYPE, "application/octet-stream", "text/*")
+
+/** Asks "¿Añadir ... a tus listas?" and saves the list, or shows an error if there is no list. */
+private fun Activity.confirmImport(shared: SharedList?, onImported: (ShoppingList) -> Unit) {
     if (shared == null) {
         Toast.makeText(this, R.string.import_invalid, Toast.LENGTH_LONG).show()
         return
@@ -79,47 +104,18 @@ fun Activity.importSharedList(text: CharSequence?, onImported: (ShoppingList) ->
     )
 }
 
-/**
- * "Importar lista" button: uses the copied message straight away if the clipboard holds a list code,
- * otherwise asks the user to paste the message.
- */
-fun Activity.importFromClipboardOrAsk(onImported: (ShoppingList) -> Unit) {
-    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val copied = clipboard.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)
-    if (ListShareCodec.containsCode(copied)) {
-        importSharedList(copied, onImported)
-        return
-    }
-
-    val input = EditText(this).apply {
-        hint = getString(R.string.import_paste_hint)
-        textSize = 16f
-        minLines = 3
-        maxLines = 6
-        setBackgroundResource(R.drawable.bg_input)
-        setPadding(dp(16), dp(12), dp(16), dp(12))
-    }
-    val wrapper = FrameLayout(this).apply {
-        setPadding(dp(24), dp(8), dp(24), 0)
-        addView(input, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
-    }
-    val dialog = MaterialAlertDialogBuilder(this)
-        .setTitle("📩  " + getString(R.string.import_paste_title))
-        .setMessage(R.string.import_paste_help)
-        .setView(wrapper)
-        .setNegativeButton(R.string.cancel, null)
-        .setPositiveButton(R.string.import_list, null)
-        .create()
-    dialog.setOnShowListener {
-        // Only close the dialog when the pasted text holds a list; otherwise let the user fix it.
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            if (ListShareCodec.containsCode(input.text)) {
-                dialog.dismiss()
-                importSharedList(input.text, onImported)
-            } else {
-                Toast.makeText(this, R.string.import_invalid, Toast.LENGTH_LONG).show()
-            }
+/** Reads a small text file; returns null if it is too big to be a list. */
+private fun Activity.readText(uri: Uri): String? {
+    val input = contentResolver.openInputStream(uri) ?: return null
+    input.use { stream ->
+        val out = ByteArrayOutputStream()
+        val buffer = ByteArray(8 * 1024)
+        while (true) {
+            val count = stream.read(buffer)
+            if (count < 0) break
+            out.write(buffer, 0, count)
+            if (out.size() > ListFileFormat.MAX_FILE_BYTES) return null
         }
+        return out.toString(Charsets.UTF_8.name())
     }
-    dialog.show()
 }

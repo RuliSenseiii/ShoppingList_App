@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.net.Uri
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.Gravity
@@ -15,8 +16,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import com.example.shoppinglist.data.Category
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.ShoppingList
@@ -28,8 +31,9 @@ import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.dp
 import com.example.shoppinglist.ui.roundedBackground
 import com.example.shoppinglist.ui.soft
-import com.example.shoppinglist.ui.importFromClipboardOrAsk
-import com.example.shoppinglist.ui.importSharedList
+import com.example.shoppinglist.ui.IMPORT_FILE_TYPES
+import com.example.shoppinglist.ui.importSharedFile
+import com.example.shoppinglist.ui.importSharedText
 import com.example.shoppinglist.ui.setupTopBar
 import com.example.shoppinglist.ui.showUndo
 import com.google.android.material.button.MaterialButton
@@ -38,8 +42,10 @@ import com.google.android.material.button.MaterialButton
  * Shows the saved lists.
  * MANAGE (option 1): every list plus "Productos que me faltan"; opens the list to edit it.
  * SHOP ("VOY A COMPRAR"): only the user lists; opens the list in shopping mode.
- * In MANAGE mode lists sent by someone else can be imported, either with the "Importar lista" button
- * or by sharing the received message with the app (ACTION_SEND).
+ * In MANAGE mode lists sent by someone else can be imported:
+ *  - Tapping a received ".listacompra" file opens this screen with it (ACTION_VIEW).
+ *  - Sharing the file, or a V0.2/V0.3 message with a text code, with the app (ACTION_SEND).
+ *  - The "Importar lista" button, which opens the file picker.
  */
 class ListsActivity : AppCompatActivity() {
 
@@ -48,6 +54,10 @@ class ListsActivity : AppCompatActivity() {
     private lateinit var mode: Mode
     private lateinit var content: LinearLayout
     private val repository by lazy { ListRepository.get(this) }
+
+    private val pickListFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importSharedFile(uri, ::openImported)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,11 +72,24 @@ class ListsActivity : AppCompatActivity() {
                 visibility = View.VISIBLE
                 text = getString(R.string.import_list)
                 setIconResource(R.drawable.ic_download)
-                setOnClickListener { importFromClipboardOrAsk(::openImported) }
+                setOnClickListener { pickListFile.launch(IMPORT_FILE_TYPES) }
             }
         }
-        if (savedInstanceState == null && intent.action == Intent.ACTION_SEND) {
-            importSharedList(intent.getCharSequenceExtra(Intent.EXTRA_TEXT), ::openImported)
+        if (savedInstanceState == null) importFromIntent()
+    }
+
+    /** Handles a list file opened or shared from another app, or an old text code shared with the app. */
+    private fun importFromIntent() {
+        when (intent.action) {
+            Intent.ACTION_VIEW -> intent.data?.let { importSharedFile(it, ::openImported) }
+            Intent.ACTION_SEND -> {
+                val stream = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                if (stream != null) {
+                    importSharedFile(stream, ::openImported)
+                } else {
+                    importSharedText(intent.getCharSequenceExtra(Intent.EXTRA_TEXT), ::openImported)
+                }
+            }
         }
     }
 
