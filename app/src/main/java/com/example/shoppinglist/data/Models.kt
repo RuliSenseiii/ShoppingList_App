@@ -24,10 +24,17 @@ data class Product(
             .trimEnd(',')
 }
 
+/** A product used before, offered while typing a new one. [toString] is what the field filters on. */
+data class ProductSuggestion(val name: String, val category: Category) {
+    override fun toString(): String = name
+}
+
 data class ShoppingList(
     val id: String = UUID.randomUUID().toString(),
-    val name: String,
+    var name: String,
     val products: MutableList<Product> = mutableListOf(),
+    /** Ids of the products already in the cart while shopping, kept until the list is completed. */
+    val inCart: MutableSet<String> = mutableSetOf(),
 ) {
     val isMissingList: Boolean get() = id == MISSING_LIST_ID
 

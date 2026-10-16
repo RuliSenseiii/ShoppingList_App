@@ -9,22 +9,28 @@ import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.annotation.ColorRes
+import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.shoppinglist.data.Category
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.ShoppingList
+import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.addEmptyState
 import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.dp
+import com.example.shoppinglist.ui.roundedBackground
+import com.example.shoppinglist.ui.soft
 import com.example.shoppinglist.ui.importFromClipboardOrAsk
 import com.example.shoppinglist.ui.importSharedList
 import com.example.shoppinglist.ui.setupTopBar
+import com.example.shoppinglist.ui.showUndo
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Shows the saved lists.
@@ -93,12 +99,6 @@ class ListsActivity : AppCompatActivity() {
             isClickable = true
             isFocusable = true
             setOnClickListener { open(list) }
-            if (mode == Mode.MANAGE && !missing) {
-                setOnLongClickListener {
-                    confirmDelete(list)
-                    true
-                }
-            }
         }
 
         // Gradient circle with an icon.
@@ -125,6 +125,15 @@ class ListsActivity : AppCompatActivity() {
             setTextColor(ContextCompat.getColor(context, R.color.text_muted))
         })
         // Emojis of the categories in the list, as a quick preview.
+        val inCart = list.products.count { it.id in list.inCart }
+        if (mode == Mode.SHOP && inCart > 0) {
+            texts.addView(TextView(this).apply {
+                text = getString(R.string.cart_progress_sub, inCart, list.products.size)
+                textSize = 14f
+                setTypeface(typeface, Typeface.BOLD)
+                setTextColor(ContextCompat.getColor(context, R.color.orange_dark))
+            })
+        }
         val emojis = Category.entries.filter { c -> list.products.any { it.category == c } }.joinToString(" ") { it.emoji }
         if (emojis.isNotEmpty()) {
             texts.addView(TextView(this).apply {
@@ -140,10 +149,19 @@ class ListsActivity : AppCompatActivity() {
             marginStart = dp(16)
         })
 
-        card.addView(ImageView(this).apply {
-            setImageResource(R.drawable.ic_chevron_right)
-            setColorFilter(ContextCompat.getColor(context, if (missing) R.color.orange else R.color.green_mid))
-        }, LinearLayout.LayoutParams(dp(28), dp(28)))
+        if (mode == Mode.MANAGE && !missing) {
+            card.addView(cardButton(R.drawable.ic_edit, getString(R.string.rename_list), R.color.green_mid) {
+                rename(list)
+            })
+            card.addView(cardButton(R.drawable.ic_delete, getString(R.string.delete_list), R.color.orange) {
+                delete(list)
+            })
+        } else {
+            card.addView(ImageView(this).apply {
+                setImageResource(R.drawable.ic_chevron_right)
+                setColorFilter(ContextCompat.getColor(context, if (missing) R.color.orange else R.color.green_mid))
+            }, LinearLayout.LayoutParams(dp(28), dp(28)))
+        }
 
         content.addView(
             card,
@@ -159,15 +177,40 @@ class ListsActivity : AppCompatActivity() {
         )
     }
 
-    private fun confirmDelete(list: ShoppingList) {
-        MaterialAlertDialogBuilder(this)
-            .setMessage(getString(R.string.delete_list_question, list.name))
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                repository.deleteList(list.id)
-                render()
-            }
-            .show()
+    /** Round icon button shown at the right of a list card. */
+    private fun cardButton(@DrawableRes icon: Int, description: String, @ColorRes tint: Int, onClick: () -> Unit) =
+        ImageButton(this).apply {
+            setImageResource(icon)
+            val color = ContextCompat.getColor(context, tint)
+            setColorFilter(color)
+            contentDescription = description
+            background = roundedBackground(soft(color, 0x1F), 0f, oval = true)
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setOnClickListener { onClick() }
+            layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)).apply { marginStart = dp(8) }
+        }
+
+    private fun rename(list: ShoppingList) {
+        Popups.askListName(
+            activity = this,
+            title = getString(R.string.rename_list),
+            initial = list.name,
+            positiveLabel = R.string.save,
+        ) { name ->
+            repository.renameList(list.id, name)
+            render()
+        }
+    }
+
+    /** Deletes straight away; "Deshacer" brings the list back for a few seconds. */
+    private fun delete(list: ShoppingList) {
+        val deleted = repository.deleteList(list.id) ?: return
+        render()
+        showUndo(getString(R.string.list_deleted, list.name)) {
+            repository.restoreList(deleted)
+            render()
+        }
     }
 
     companion object {

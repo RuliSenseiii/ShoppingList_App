@@ -23,7 +23,6 @@
         <item quantity="one">%1$d producto</item>
         <item quantity="other">%1$d productos</item>
     </plurals>
-    <string name="delete_list_question">¿Eliminar la lista \"%1$s\"?</string>
     <string name="delete">Eliminar</string>
 
     <string name="new_list_title">Nueva lista</string>
@@ -32,7 +31,7 @@
     <string name="create">Crear</string>
 
     <string name="product_name_hint">Nombre del producto</string>
-    <string name="category_hint">Selecciona una categoría</string>
+    <string name="category_hint">Elige una categoría</string>
     <string name="quantity_kg_hint">Cantidad</string>
     <string name="quantity_units_hint">Cantidad</string>
     <string name="add">Añadir</string>
@@ -84,6 +83,13 @@
     <string name="import_paste_help">Copia el mensaje con la lista que te han enviado y pégalo aquí.</string>
     <string name="import_invalid">No se ha encontrado ninguna lista en el mensaje.</string>
     <string name="imported_list_default_name">Lista compartida</string>
+
+    <!-- V0.3 -->
+    <string name="undo">Deshacer</string>
+    <string name="product_deleted">\"%1$s\" eliminado</string>
+    <string name="list_deleted">Lista \"%1$s\" eliminada</string>
+    <string name="rename_list">Renombrar lista</string>
+    <string name="cart_progress_sub">🛒 %1$d de %2$d en el carro</string>
 
     <string name="empty_list_hint">Pulsa \"Añadir producto\" para empezar a llenarla.</string>
 </resources>

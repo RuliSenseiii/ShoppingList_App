@@ -64,3 +64,23 @@ En ambos casos aparece un 'pop up': '¿Añadir [NOMBRE_LISTA] a tus listas?' con
 	a. Añadir a mis listas (se guarda como una lista nueva y se abre)
 	b. Cruz para cerrar el 'pop up'
 Si el mensaje no contiene ninguna lista se muestra el aviso: 'No se ha encontrado ninguna lista en el mensaje.'
+
+
+V0.3 - COMPRA SIN PERDER EL PROGRESO, AÑADIR MÁS RÁPIDO Y GESTIONAR LAS LISTAS:
+
+1. No perder lo que ya está en el carro:
+Los productos marcados como 'En el carro' se guardan en la lista. Si el usuario sale de la lista mientras compra (con la flecha atrás o cerrando la app) y vuelve a entrar, los productos siguen tachados y la barra de progreso sigue por donde iba.
+En la pantalla de 'VOY A COMPRAR', las listas que se han empezado a comprar muestran debajo del número de productos: '🛒 [N] de [TOTAL] en el carro'.
+Si al volver a entrar todos los productos ya están en el carro, aparece de nuevo el mensaje 'Has completado la lista'.
+Al pulsar 'Revisar Lista' el progreso se borra y la lista vuelve a quedar sin tachar.
+
+2. Añadir productos más rápido (sustituye al desplegable de categorías):
+	-Al escribir el nombre del producto aparecen sugerencias con los productos usados antes (con el emoji de su categoría). Al elegir una sugerencia se selecciona sola su categoría. Si se escribe el nombre completo de un producto ya usado, también se selecciona su categoría.
+	-Las categorías se eligen en una cuadrícula de 3x3 botones (emoji + nombre); la elegida se resalta con su color.
+	-Al elegir la categoría aparece el campo de cantidad con el teclado ya abierto.
+
+3. Gestionar las listas (sustituye a mantener pulsada una lista para eliminarla):
+En 'Mis listas' cada lista (excepto 'Productos que me faltan') tiene dos botones a la derecha:
+	a. Lápiz: renombrar la lista. Se abre una ventana con el nombre actual seleccionado para escribir el nuevo.
+	b. Papelera: eliminar la lista.
+Al eliminar una lista, o un producto (desde el 'pop up' del producto), aparece abajo durante unos segundos el mensaje '[NOMBRE] eliminado/a' con el botón 'Deshacer', que lo recupera en el mismo sitio.

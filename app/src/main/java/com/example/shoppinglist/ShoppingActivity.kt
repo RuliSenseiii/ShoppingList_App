@@ -29,7 +29,6 @@ class ShoppingActivity : AppCompatActivity() {
     private lateinit var listId: String
     private lateinit var content: LinearLayout
 
-    private val inCart = mutableSetOf<String>()
     private var reviewing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,20 +38,21 @@ class ShoppingActivity : AppCompatActivity() {
         listId = intent.getStringExtra(EXTRA_LIST_ID) ?: return finish()
         content = findViewById(R.id.content)
 
-        savedInstanceState?.let {
-            inCart.addAll(it.getStringArrayList(STATE_IN_CART).orEmpty())
-            reviewing = it.getBoolean(STATE_REVIEWING)
-        }
+        reviewing = savedInstanceState?.getBoolean(STATE_REVIEWING) ?: false
         render()
 
-        if (savedInstanceState == null && repository.missingList().products.isNotEmpty()) {
-            askAboutMissingProducts()
+        if (savedInstanceState == null) {
+            if (repository.missingList().products.isNotEmpty()) {
+                askAboutMissingProducts()
+            } else {
+                // The list may have been left with everything already in the cart.
+                checkCompleted()
+            }
         }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putStringArrayList(STATE_IN_CART, ArrayList(inCart))
         outState.putBoolean(STATE_REVIEWING, reviewing)
     }
 
@@ -76,7 +76,8 @@ class ShoppingActivity : AppCompatActivity() {
     private fun render() {
         val list = repository.get(listId) ?: return finish()
         setupTopBar(list.name)
-        inCart.retainAll(list.products.map { it.id }.toSet())
+        // What is in the cart is saved with the list, so leaving this screen does not lose it.
+        val inCart = if (reviewing) emptySet() else list.products.map { it.id }.filter { it in list.inCart }.toSet()
 
         val onClick: ((Product) -> Unit)? = if (reviewing) null else ::onProductClick
         ProductListRenderer.render(content, list.products, inCart, onClick)
@@ -130,9 +131,9 @@ class ShoppingActivity : AppCompatActivity() {
     }
 
     private fun onProductClick(product: Product) {
-        if (product.id in inCart) {
+        if (product.id in repository.get(listId)?.inCart.orEmpty()) {
             // Tapping a crossed-out product undoes it, in case it was marked by mistake.
-            inCart.remove(product.id)
+            repository.setInCart(listId, product.id, false)
             render()
             return
         }
@@ -143,7 +144,7 @@ class ShoppingActivity : AppCompatActivity() {
             badge = PopupBadge(product.category.emoji, ContextCompat.getColor(this, product.category.colorRes)),
             actions = listOf(
                 PopupAction(getString(R.string.in_cart), R.drawable.ic_cart, green = true) {
-                    inCart.add(product.id)
+                    repository.setInCart(listId, product.id, true)
                     render()
                     checkCompleted()
                 },
@@ -154,8 +155,8 @@ class ShoppingActivity : AppCompatActivity() {
     }
 
     private fun checkCompleted() {
-        val products = repository.get(listId)?.products ?: return
-        if (products.isEmpty() || !products.all { it.id in inCart }) return
+        val list = repository.get(listId) ?: return
+        if (list.products.isEmpty() || !list.products.all { it.id in list.inCart }) return
         Popups.show(
             activity = this,
             title = getString(R.string.list_completed),
@@ -165,7 +166,7 @@ class ShoppingActivity : AppCompatActivity() {
                 PopupAction(getString(R.string.delete_list), R.drawable.ic_delete, green = false) { deleteListAndGoHome() },
                 PopupAction(getString(R.string.review_list), R.drawable.ic_visibility, green = true) {
                     reviewing = true
-                    inCart.clear()
+                    repository.clearCart(listId)
                     render()
                 },
             ),
@@ -194,7 +195,6 @@ class ShoppingActivity : AppCompatActivity() {
 
     companion object {
         private const val EXTRA_LIST_ID = "list_id"
-        private const val STATE_IN_CART = "state_in_cart"
         private const val STATE_REVIEWING = "state_reviewing"
 
         fun intent(context: Context, listId: String) =

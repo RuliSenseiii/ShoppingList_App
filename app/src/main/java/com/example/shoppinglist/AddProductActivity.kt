@@ -2,36 +2,44 @@ package com.example.shoppinglist
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
 import com.example.shoppinglist.data.Category
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.Product
+import com.example.shoppinglist.data.ProductSuggestion
 import com.example.shoppinglist.data.ShoppingList
+import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.ProductListRenderer
-import com.example.shoppinglist.ui.parseQuantity
-import com.example.shoppinglist.ui.quantityInputType
 import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.dp
+import com.example.shoppinglist.ui.parseQuantity
+import com.example.shoppinglist.ui.quantityInputType
 import com.example.shoppinglist.ui.setupTopBar
 import com.example.shoppinglist.ui.showProductActions
+import com.example.shoppinglist.ui.soft
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
- * Adds products one by one: name, category (drop-down) and quantity (kg or units).
+ * Adds products one by one: name, category and quantity (kg or units).
+ * The name field suggests products used before; picking one also picks its category. Categories are
+ * a grid of emoji buttons chosen with one tap, after which the quantity field opens with the keyboard.
  * The "Añadir" button only appears once the three fields are filled. Depending on how the screen
  * was opened the product goes to:
  *  - EDIT_LIST: the list being edited (from option 1).
@@ -48,9 +56,10 @@ class AddProductActivity : AppCompatActivity() {
     /** Target list; null in NEW_LIST mode until the first product is added. */
     private var listId: String? = null
     private var newListName: String? = null
+    private var selectedCategory: Category? = null
 
-    private lateinit var etName: EditText
-    private lateinit var spCategory: Spinner
+    private lateinit var etName: AutoCompleteTextView
+    private lateinit var categoryGrid: LinearLayout
     private lateinit var etQuantity: EditText
     private lateinit var quantityRow: View
     private lateinit var tvUnit: TextView
@@ -74,7 +83,7 @@ class AddProductActivity : AppCompatActivity() {
 
         setupTopBar(getString(if (mode == Mode.NEW_LIST) R.string.new_list_title else R.string.add_product))
         etName = findViewById(R.id.etName)
-        spCategory = findViewById(R.id.spCategory)
+        categoryGrid = findViewById(R.id.categoryGrid)
         etQuantity = findViewById(R.id.etQuantity)
         quantityRow = findViewById(R.id.quantityRow)
         tvUnit = findViewById(R.id.tvUnit)
@@ -83,8 +92,10 @@ class AddProductActivity : AppCompatActivity() {
         tvCurrentTitle = findViewById(R.id.tvCurrentTitle)
         content = findViewById(R.id.content)
 
-        setupCategorySpinner()
-        etName.doAfterTextChanged { updateAddButton() }
+        setupSuggestions()
+        val restoredCategory = savedInstanceState?.getString(STATE_CATEGORY)
+            ?.let { name -> Category.entries.firstOrNull { it.name == name } }
+        selectCategory(restoredCategory, moveToQuantity = false)
         etQuantity.doAfterTextChanged { updateAddButton() }
         btnAdd.setOnClickListener { addProduct() }
 
@@ -98,50 +109,105 @@ class AddProductActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putString(STATE_LIST_ID, listId)
         outState.putString(STATE_NEW_LIST_NAME, newListName)
+        outState.putString(STATE_CATEGORY, selectedCategory?.name)
     }
 
-    private fun setupCategorySpinner() {
-        val items = listOf(getString(R.string.category_hint)) + Category.entries.map { it.displayName }
-        val adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
-                style(super.getView(position, convertView, parent), position)
+    /** Suggestions of products used before, shown as "emoji name" under the name field. */
+    private fun setupSuggestions() {
+        etName.setAdapter(suggestionsAdapter())
+        etName.setDropDownBackgroundResource(R.drawable.bg_card_plain)
+        // As wide as the rounded name row, not the whole screen.
+        val nameRow = findViewById<View>(R.id.nameRow)
+        nameRow.post { etName.dropDownWidth = nameRow.width }
+        etName.setOnItemClickListener { parent, _, position, _ ->
+            val suggestion = parent.getItemAtPosition(position) as ProductSuggestion
+            selectCategory(suggestion.category, moveToQuantity = true)
+        }
+        etName.doAfterTextChanged { text ->
+            // Typing a known product in full also picks its category, unless one is already chosen.
+            if (selectedCategory == null) {
+                val typed = text.toString().trim()
+                repository.suggestions().firstOrNull { it.name.equals(typed, ignoreCase = true) }
+                    ?.let { selectCategory(it.category, moveToQuantity = false) }
+            }
+            updateAddButton()
+        }
+    }
 
-            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View =
-                style(super.getDropDownView(position, convertView, parent), position).apply {
-                    val padding = (14 * resources.displayMetrics.density).toInt()
-                    setPadding(padding, padding, padding, padding)
-                }
-
-            private fun style(view: View, position: Int): View = (view as TextView).apply {
+    private fun suggestionsAdapter() = object : ArrayAdapter<ProductSuggestion>(
+        this, android.R.layout.simple_dropdown_item_1line, repository.suggestions(),
+    ) {
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
+            (super.getView(position, convertView, parent) as TextView).apply {
+                text = getItem(position)?.let { "${it.category.emoji}  ${it.name}" }
                 textSize = 18f
-                setTextColor(
-                    ContextCompat.getColor(context, if (position == 0) R.color.text_muted else R.color.text_dark)
+                setTextColor(ContextCompat.getColor(context, R.color.text_dark))
+                setPadding(dp(16), dp(12), dp(16), dp(12))
+            }
+    }
+
+    /** Fills the 3x3 grid of category buttons, highlighting [selectedCategory]. */
+    private fun renderCategoryGrid() {
+        categoryGrid.removeAllViews()
+        Category.entries.chunked(GRID_COLUMNS).forEachIndexed { rowIndex, rowCategories ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            rowCategories.forEachIndexed { index, category ->
+                row.addView(
+                    categoryButton(category),
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        if (index > 0) marginStart = dp(8)
+                    },
                 )
             }
-        }
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spCategory.adapter = adapter
-        spCategory.setPopupBackgroundResource(R.drawable.bg_card_plain)
-        // The whole rounded row opens the drop-down, not only the text.
-        val categoryRow = findViewById<View>(R.id.categoryRow)
-        categoryRow.setOnClickListener { spCategory.performClick() }
-        categoryRow.post {
-            spCategory.dropDownWidth = categoryRow.width
-            spCategory.dropDownHorizontalOffset = -spCategory.left
-        }
-        spCategory.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                onCategoryChanged(selectedCategory())
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            categoryGrid.addView(
+                row,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    .apply { if (rowIndex > 0) topMargin = dp(8) },
+            )
         }
     }
 
-    private fun selectedCategory(): Category? =
-        spCategory.selectedItemPosition.takeIf { it > 0 }?.let { Category.entries[it - 1] }
+    private fun categoryButton(category: Category): View {
+        val color = ContextCompat.getColor(this, category.colorRes)
+        val selected = category == selectedCategory
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            minimumHeight = dp(72)
+            setPadding(dp(4), dp(8), dp(4), dp(8))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(16).toFloat()
+                setColor(if (selected) soft(color, 0x33) else ContextCompat.getColor(context, R.color.white))
+                setStroke(
+                    dp(if (selected) 2 else 1),
+                    if (selected) color else ContextCompat.getColor(context, R.color.green_soft),
+                )
+            }
+            isClickable = true
+            isFocusable = true
+            isSelected = selected
+            contentDescription = category.label
+            setOnClickListener { selectCategory(category, moveToQuantity = true) }
+            addView(TextView(context).apply {
+                text = category.emoji
+                textSize = 24f
+                setTextColor(Color.BLACK)
+                gravity = Gravity.CENTER
+            })
+            addView(TextView(context).apply {
+                text = category.label
+                textSize = 13f
+                maxLines = 1
+                gravity = Gravity.CENTER
+                if (selected) setTypeface(typeface, Typeface.BOLD)
+                setTextColor(if (selected) color else ContextCompat.getColor(context, R.color.text_dark))
+            })
+        }
+    }
 
-    private fun onCategoryChanged(category: Category?) {
+    private fun selectCategory(category: Category?, moveToQuantity: Boolean) {
+        selectedCategory = category
+        renderCategoryGrid()
         if (category == null) {
             quantityRow.visibility = View.GONE
             etQuantity.text.clear()
@@ -156,22 +222,27 @@ class AddProductActivity : AppCompatActivity() {
             )
             tvUnit.text = getString(if (category.usesKilograms) R.string.unit_kg else R.string.unit_units)
             quantityRow.visibility = View.VISIBLE
+            if (moveToQuantity) {
+                etName.dismissDropDown()
+                etQuantity.requestFocus()
+                WindowCompat.getInsetsController(window, etQuantity).show(WindowInsetsCompat.Type.ime())
+            }
         }
         updateAddButton()
     }
 
     private fun currentQuantity(): Double? {
-        val category = selectedCategory() ?: return null
+        val category = selectedCategory ?: return null
         return parseQuantity(etQuantity.text.toString(), category.usesKilograms)
     }
 
     private fun updateAddButton() {
-        val ready = etName.text.isNotBlank() && selectedCategory() != null && currentQuantity() != null
+        val ready = etName.text.isNotBlank() && selectedCategory != null && currentQuantity() != null
         btnAdd.visibility = if (ready) View.VISIBLE else View.GONE
     }
 
     private fun addProduct() {
-        val category = selectedCategory() ?: return
+        val category = selectedCategory ?: return
         val quantity = currentQuantity() ?: return
         val name = etName.text.toString().trim().replaceFirstChar { it.uppercase() }
 
@@ -179,9 +250,9 @@ class AddProductActivity : AppCompatActivity() {
         repository.addProduct(targetId, Product(name = name, category = category, quantity = quantity))
         Toast.makeText(this, getString(R.string.added_to, targetName()), Toast.LENGTH_SHORT).show()
 
+        selectCategory(null, moveToQuantity = false)
         etName.text.clear()
-        etQuantity.text.clear()
-        spCategory.setSelection(0)
+        etName.setAdapter(suggestionsAdapter()) // Now includes the product just added.
         etName.requestFocus()
         renderTarget()
     }
@@ -203,29 +274,16 @@ class AddProductActivity : AppCompatActivity() {
         getString(R.string.new_list_default_name, repository.userLists().size + 1)
 
     private fun askNewListName() {
-        val input = EditText(this).apply {
-            hint = getString(R.string.new_list_name_hint)
-            setText(defaultListName())
-            selectAll()
-            maxLines = 1
-            textSize = 18f
-            setBackgroundResource(R.drawable.bg_input)
-            setPadding(dp(16), 0, dp(16), 0)
+        Popups.askListName(
+            activity = this,
+            title = getString(R.string.new_list_title),
+            initial = defaultListName(),
+            positiveLabel = R.string.create,
+            onCancel = { finish() },
+        ) { name ->
+            newListName = name
+            renderTarget()
         }
-        val wrapper = FrameLayout(this).apply {
-            setPadding(dp(24), dp(8), dp(24), 0)
-            addView(input, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(56)))
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle("📝  " + getString(R.string.new_list_title))
-            .setView(wrapper)
-            .setCancelable(false)
-            .setNegativeButton(R.string.cancel) { _, _ -> finish() }
-            .setPositiveButton(R.string.create) { _, _ ->
-                newListName = input.text.toString().trim().ifEmpty { defaultListName() }
-                renderTarget()
-            }
-            .show()
     }
 
     companion object {
@@ -233,6 +291,8 @@ class AddProductActivity : AppCompatActivity() {
         private const val EXTRA_LIST_ID = "list_id"
         private const val STATE_LIST_ID = "state_list_id"
         private const val STATE_NEW_LIST_NAME = "state_new_list_name"
+        private const val STATE_CATEGORY = "state_category"
+        private const val GRID_COLUMNS = 3
 
         fun editListIntent(context: Context, listId: String): Intent =
             if (listId == ShoppingList.MISSING_LIST_ID) {

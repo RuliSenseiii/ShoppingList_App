@@ -7,6 +7,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -83,6 +84,42 @@ object Popups {
         return dialog
     }
 
+    /**
+     * Asks for a list name in a one-line field, pre-filled with [initial] and selected so typing
+     * replaces it. An empty answer keeps [initial].
+     */
+    fun askListName(
+        activity: Activity,
+        title: String,
+        initial: String,
+        positiveLabel: Int,
+        onCancel: (() -> Unit)? = null,
+        onSaved: (String) -> Unit,
+    ) {
+        val input = EditText(activity).apply {
+            hint = activity.getString(R.string.new_list_name_hint)
+            setText(initial)
+            // selectAll() alone is lost when the dialog gives the field focus.
+            setSelectAllOnFocus(true)
+            maxLines = 1
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            textSize = 18f
+            setBackgroundResource(R.drawable.bg_input)
+            setPadding(activity.dp(16), 0, activity.dp(16), 0)
+        }
+        val wrapper = FrameLayout(activity).apply {
+            setPadding(activity.dp(24), activity.dp(8), activity.dp(24), 0)
+            addView(input, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, activity.dp(56)))
+        }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle("📝  $title")
+            .setView(wrapper)
+            .setCancelable(onCancel == null)
+            .setNegativeButton(R.string.cancel) { _, _ -> onCancel?.invoke() }
+            .setPositiveButton(positiveLabel) { _, _ -> onSaved(input.text.toString().trim().ifEmpty { initial }) }
+            .show()
+    }
+
     /** Asks for a new quantity, using kg (decimals) or units depending on the product category. */
     fun editQuantity(activity: Activity, product: Product, onSaved: (Double) -> Unit) {
         val kilograms = product.category.usesKilograms
@@ -144,8 +181,14 @@ fun Activity.showProductActions(listId: String, product: Product, onChanged: () 
         badge = PopupBadge(product.category.emoji, ContextCompat.getColor(this, product.category.colorRes)),
         actions = listOf(
             PopupAction(getString(R.string.delete_product), R.drawable.ic_delete, green = false) {
-                repository.removeProduct(listId, product.id)
+                val deleted = repository.removeProduct(listId, product.id)
                 onChanged()
+                if (deleted != null) {
+                    showUndo(getString(R.string.product_deleted, product.name)) {
+                        repository.restoreProduct(deleted)
+                        onChanged()
+                    }
+                }
             },
             PopupAction(getString(R.string.edit_quantity), R.drawable.ic_edit, green = true) {
                 Popups.editQuantity(this, product) { quantity ->

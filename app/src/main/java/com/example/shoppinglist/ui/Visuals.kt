@@ -1,19 +1,23 @@
 package com.example.shoppinglist.ui
 
+import android.app.Activity
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
+import androidx.core.view.isVisible
 import com.example.shoppinglist.R
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
 
 fun Context.dp(value: Number): Int = (value.toFloat() * resources.displayMetrics.density).toInt()
 
@@ -82,3 +86,17 @@ fun LinearLayout.addEmptyState(emoji: String, title: String, hint: String? = nul
         }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
     }
 }
+
+/**
+ * Bottom message with a "Deshacer" button, shown after deleting something. It sits above the
+ * screen's bottom button, if there is one, so it does not cover it.
+ */
+fun Activity.showUndo(message: String, onUndo: () -> Unit) {
+    Snackbar.make(findViewById(android.R.id.content), message, UNDO_DURATION_MS)
+        .setAction(R.string.undo) { onUndo() }
+        .setActionTextColor(ContextCompat.getColor(this, R.color.orange_soft))
+        .apply { findViewById<View>(R.id.btnBottom)?.takeIf { it.isVisible }?.let { anchorView = it } }
+        .show()
+}
+
+private const val UNDO_DURATION_MS = 5000
