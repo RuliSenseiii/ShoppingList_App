@@ -45,3 +45,22 @@ Una vez todos los productos están 'en el carro' aparece un mensaje: 'Has comple
 
 IMPORTANTE:
 	En todas las pantallas (excepto la principal) arriba a la izquierda hay un botón con una flecha apuntando a la izquierda, presionarlo envía a la pantalla anterior.
+
+V0.2 - COMPARTIR LISTAS:
+El usuario puede enviar una lista a otra persona para que la añada a su app.
+
+Enviar una lista:
+Dentro de una lista (desde la opción 1), arriba a la derecha hay un botón 'Compartir'. Al pulsarlo se abre el menú de compartir del móvil (WhatsApp, Telegram, correo...) con un mensaje que se puede leer sin tener la app:
+	-Titulo: '🛒 Lista de la compra: [NOMBRE_LISTA]'
+	-Los productos separados por categoría (con su emoji), cada uno con su cantidad.
+	-Al final, un código para importar la lista en la app (empieza por 'LDC1:').
+Si la lista está vacía no se puede compartir y se muestra un aviso.
+
+Recibir una lista:
+La persona que recibe el mensaje puede añadir la lista de dos formas:
+	1. Copiando el mensaje y pulsando el botón 'Importar lista' (abajo en 'Mis listas'). Si el mensaje copiado contiene una lista se usa directamente; si no, se abre una ventana para pegarlo.
+	2. Compartiendo el mensaje directamente con la app 'Lista de la compra'.
+En ambos casos aparece un 'pop up': '¿Añadir [NOMBRE_LISTA] a tus listas?' con el número de productos y los emojis de sus categorías, y dos opciones:
+	a. Añadir a mis listas (se guarda como una lista nueva y se abre)
+	b. Cruz para cerrar el 'pop up'
+Si el mensaje no contiene ninguna lista se muestra el aviso: 'No se ha encontrado ninguna lista en el mensaje.'
