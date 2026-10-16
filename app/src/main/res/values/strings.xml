@@ -70,5 +70,20 @@
     <string name="cart_progress_count">%1$d / %2$d</string>
     <string name="list_completed_sub">¡Todo en el carro! ¿Qué quieres hacer con la lista?</string>
     <string name="show_missing_sub">Se añadirán a esta lista para que no se te olvide nada.</string>
+    <!-- Sharing lists -->
+    <string name="share_list">Compartir lista</string>
+    <string name="share_empty_list">La lista está vacía, añade algún producto antes de compartirla.</string>
+    <string name="share_message_title">🛒 Lista de la compra: %1$s</string>
+    <string name="share_message_import">📲 ¿Tienes la app Lista de la compra? Copia este mensaje y pulsa \"Importar lista\" en Mis listas (o compártelo con la app) para añadirla:</string>
+    <string name="import_list">Importar lista</string>
+    <string name="import_question">¿Añadir \"%1$s\" a tus listas?</string>
+    <string name="import_action">Añadir a mis listas</string>
+    <string name="imported_list">Lista \"%1$s\" añadida</string>
+    <string name="import_paste_title">Importar lista</string>
+    <string name="import_paste_hint">Pega aquí el mensaje que te han enviado</string>
+    <string name="import_paste_help">Copia el mensaje con la lista que te han enviado y pégalo aquí.</string>
+    <string name="import_invalid">No se ha encontrado ninguna lista en el mensaje.</string>
+    <string name="imported_list_default_name">Lista compartida</string>
+
     <string name="empty_list_hint">Pulsa \"Añadir producto\" para empezar a llenarla.</string>
 </resources>

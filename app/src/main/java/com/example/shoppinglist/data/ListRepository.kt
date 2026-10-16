@@ -38,6 +38,14 @@ class ListRepository private constructor(context: Context) {
             save()
         }
 
+    /** Saves a list received from someone else as a new list of this user. */
+    fun importList(name: String, products: List<Product>): ShoppingList =
+        ShoppingList(name = name).also { list ->
+            products.forEach { list.addOrMerge(it) }
+            lists.add(list)
+            save()
+        }
+
     fun deleteList(id: String) {
         if (id == ShoppingList.MISSING_LIST_ID) {
             missingList().products.clear()

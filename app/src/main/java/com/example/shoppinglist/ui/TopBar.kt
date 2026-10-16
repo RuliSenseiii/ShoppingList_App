@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.annotation.DrawableRes
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -14,6 +15,16 @@ import com.example.shoppinglist.R
 fun Activity.setupTopBar(title: String) {
     findViewById<TextView>(R.id.tvTopTitle).text = title
     findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
+}
+
+/** Shows an icon button at the right of the top bar. */
+fun Activity.setupTopBarAction(@DrawableRes icon: Int, description: String, onClick: () -> Unit) {
+    findViewById<ImageButton>(R.id.btnTopAction).apply {
+        visibility = View.VISIBLE
+        setImageResource(icon)
+        contentDescription = description
+        setOnClickListener { onClick() }
+    }
 }
 
 /**

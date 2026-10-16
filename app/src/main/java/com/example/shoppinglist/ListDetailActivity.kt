@@ -11,10 +11,12 @@ import com.example.shoppinglist.ui.ProductListRenderer
 import com.example.shoppinglist.ui.addEmptyState
 import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.setupTopBar
+import com.example.shoppinglist.ui.setupTopBarAction
+import com.example.shoppinglist.ui.shareList
 import com.example.shoppinglist.ui.showProductActions
 import com.google.android.material.button.MaterialButton
 
-/** Option 1: shows a list grouped by category and lets the user edit it. */
+/** Option 1: shows a list grouped by category and lets the user edit or share it. */
 class ListDetailActivity : AppCompatActivity() {
 
     private lateinit var listId: String
@@ -46,6 +48,7 @@ class ListDetailActivity : AppCompatActivity() {
     private fun render() {
         val list = repository.get(listId) ?: return finish()
         setupTopBar(list.name)
+        setupTopBarAction(R.drawable.ic_share, getString(R.string.share_list)) { shareList(list) }
         ProductListRenderer.render(content, list.products) { product ->
             showProductActions(listId, product) { render() }
         }

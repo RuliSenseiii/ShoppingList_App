@@ -27,4 +27,12 @@
         android:textColor="@color/white"
         android:textSize="21sp"
         android:textStyle="bold" />
+
+    <!-- Optional action on the right (e.g. share), hidden unless a screen sets it up. -->
+    <ImageButton
+        android:id="@+id/btnTopAction"
+        android:layout_width="56dp"
+        android:layout_height="60dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:visibility="gone" />
 </LinearLayout>

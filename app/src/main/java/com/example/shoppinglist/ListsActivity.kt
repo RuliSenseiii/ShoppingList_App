@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.Gravity
+import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -19,13 +20,18 @@ import com.example.shoppinglist.data.ShoppingList
 import com.example.shoppinglist.ui.addEmptyState
 import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.dp
+import com.example.shoppinglist.ui.importFromClipboardOrAsk
+import com.example.shoppinglist.ui.importSharedList
 import com.example.shoppinglist.ui.setupTopBar
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Shows the saved lists.
  * MANAGE (option 1): every list plus "Productos que me faltan"; opens the list to edit it.
  * SHOP ("VOY A COMPRAR"): only the user lists; opens the list in shopping mode.
+ * In MANAGE mode lists sent by someone else can be imported, either with the "Importar lista" button
+ * or by sharing the received message with the app (ACTION_SEND).
  */
 class ListsActivity : AppCompatActivity() {
 
@@ -42,6 +48,23 @@ class ListsActivity : AppCompatActivity() {
         mode = Mode.valueOf(intent.getStringExtra(EXTRA_MODE) ?: Mode.MANAGE.name)
         setupTopBar(getString(if (mode == Mode.SHOP) R.string.choose_list_title else R.string.my_lists_title))
         content = findViewById(R.id.content)
+
+        if (mode == Mode.MANAGE) {
+            findViewById<MaterialButton>(R.id.btnBottom).apply {
+                visibility = View.VISIBLE
+                text = getString(R.string.import_list)
+                setIconResource(R.drawable.ic_download)
+                setOnClickListener { importFromClipboardOrAsk(::openImported) }
+            }
+        }
+        if (savedInstanceState == null && intent.action == Intent.ACTION_SEND) {
+            importSharedList(intent.getCharSequenceExtra(Intent.EXTRA_TEXT), ::openImported)
+        }
+    }
+
+    private fun openImported(list: ShoppingList) {
+        render()
+        startActivity(ListDetailActivity.intent(this, list.id))
     }
 
     override fun onResume() {
