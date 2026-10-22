@@ -14,9 +14,11 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
@@ -35,8 +37,10 @@ import com.example.shoppinglist.ui.IMPORT_FILE_TYPES
 import com.example.shoppinglist.ui.importSharedFile
 import com.example.shoppinglist.ui.importSharedText
 import com.example.shoppinglist.ui.setupTopBar
+import com.example.shoppinglist.ui.setupTopBarAction
 import com.example.shoppinglist.ui.showUndo
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Shows the saved lists.
@@ -46,6 +50,7 @@ import com.google.android.material.button.MaterialButton
  *  - Tapping a received ".listacompra" file opens this screen with it (ACTION_VIEW).
  *  - Sharing the file, or a V0.2/V0.3 message with a text code, with the app (ACTION_SEND).
  *  - The "Importar lista" button, which opens the file picker.
+ * Also in MANAGE mode, with 2 or more lists, the top-right button joins the chosen lists into one.
  */
 class ListsActivity : AppCompatActivity() {
 
@@ -109,6 +114,12 @@ class ListsActivity : AppCompatActivity() {
 
         val lists = repository.userLists()
         lists.forEach { addCard(it) }
+
+        if (mode == Mode.MANAGE && lists.size >= 2) {
+            setupTopBarAction(R.drawable.ic_merge, getString(R.string.merge_lists)) { chooseListsToMerge() }
+        } else {
+            findViewById<View>(R.id.btnTopAction).visibility = View.GONE
+        }
 
         if (lists.isEmpty()) content.addEmptyState("📝", getString(R.string.no_lists))
     }
@@ -247,6 +258,50 @@ class ListsActivity : AppCompatActivity() {
             ),
             showClose = true,
         )
+    }
+
+    /** Lets the user tick the lists to join (at least 2), then name the joined list. */
+    private fun chooseListsToMerge() {
+        val lists = repository.userLists()
+        val checked = BooleanArray(lists.size)
+        val labels = lists.map {
+            "${it.name}  (${resources.getQuantityString(R.plurals.products_count, it.products.size, it.products.size)})"
+        }.toTypedArray()
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.merge_lists_choose))
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked -> checked[which] = isChecked }
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.merge_action, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val chosen = lists.filterIndexed { index, _ -> checked[index] }
+                if (chosen.size < 2) {
+                    Toast.makeText(this, R.string.merge_lists_need_two, Toast.LENGTH_SHORT).show()
+                } else {
+                    dialog.dismiss()
+                    nameMergedList(chosen)
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    /** Joins [chosen] into one list; "Deshacer" brings the original lists back for a few seconds. */
+    private fun nameMergedList(chosen: List<ShoppingList>) {
+        Popups.askListName(
+            activity = this,
+            title = getString(R.string.merged_list_name),
+            initial = chosen.joinToString(" + ") { it.name },
+            positiveLabel = R.string.merge_action,
+        ) { name ->
+            val result = repository.mergeLists(chosen.map { it.id }, name) ?: return@askListName
+            render()
+            showUndo(resources.getQuantityString(R.plurals.lists_merged, chosen.size, chosen.size, name)) {
+                repository.undoMerge(result)
+                render()
+            }
+        }
     }
 
     companion object {

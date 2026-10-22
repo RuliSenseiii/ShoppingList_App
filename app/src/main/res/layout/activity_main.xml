@@ -160,6 +160,37 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/bannerHome"
+            style="@style/MainBanner"
+            android:background="@drawable/bg_banner_orange">
+
+            <FrameLayout
+                style="@style/MainBannerIconCircle"
+                android:background="@drawable/bg_icon_circle_orange">
+
+                <ImageView
+                    style="@style/MainBannerIcon"
+                    android:src="@drawable/ic_home" />
+            </FrameLayout>
+
+            <LinearLayout style="@style/MainBannerTexts">
+
+                <TextView
+                    style="@style/MainBannerTitle"
+                    android:text="@string/banner_home"
+                    android:textColor="@color/orange_dark" />
+
+                <TextView
+                    android:id="@+id/tvHomeSub"
+                    style="@style/MainBannerSubtitle" />
+            </LinearLayout>
+
+            <ImageView
+                style="@style/MainBannerChevron"
+                app:tint="@color/orange" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/btnGoShopping"
             android:layout_width="match_parent"
             android:layout_height="0dp"

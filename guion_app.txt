@@ -101,3 +101,20 @@ Recibir una lista:
 	2. También se puede compartir el archivo con la app, o pulsar 'Importar lista' en 'Mis listas', que abre el selector de archivos para elegirlo (por ejemplo, desde Descargas).
 Al pulsar 'Añadir a mis listas' se guarda como una lista nueva y se abre. Si el archivo no contiene una lista se muestra el aviso: 'No se ha encontrado ninguna lista para importar.'
 Los mensajes con código enviados desde la V0.2 y la V0.3 se pueden seguir importando compartiendo el mensaje con la app.
+
+
+V0.5 - RECUENTO EN CASA Y UNIR LISTAS:
+
+1. Recuento en casa:
+En la pantalla principal hay un nuevo banner 'Recuento en casa' (debajo de 'Añadir producto'), con el número de productos contados.
+Dentro se ven los productos que el usuario tiene en casa, separados por categoría como en el resto de listas. Con el botón 'Añadir producto' se apuntan productos y su cantidad; si el producto ya estaba contado, la nueva cantidad sustituye a la anterior (es un recuento, no se suma). Al clicar en un producto se puede eliminar o editar su cantidad (aquí se permite 0: 'no me queda').
+Cuando el usuario apunta un producto desde 'Añadir producto' (opción 3, 'Productos que me faltan'), su cantidad se resta del recuento en casa (nunca baja de 0).
+Cuando el usuario completa una lista en 'VOY A COMPRAR', el mensaje 'Has completado la lista' avisa de que lo comprado se sumará al recuento en casa. Al pulsar 'Eliminar Lista' o 'Revisar Lista' se suman las cantidades de todos los productos de la lista al recuento (los que no estaban contados se añaden) y aparece el aviso '🏠 Compra sumada al recuento en casa'. Cada compra completada se suma una sola vez.
+
+2. Cantidad en casa al añadir un producto:
+En la pantalla de añadir producto (al crear o editar cualquier lista), en cuanto el nombre escrito coincide con un producto del recuento en casa, aparece encima del nombre el mensaje '🏠 En casa tienes [CANTIDAD]' (o '🏠 En casa no te queda' si es 0).
+
+3. Unir listas:
+En 'Mis listas', si hay 2 o más listas, arriba a la derecha aparece el botón 'Unir listas'. Al pulsarlo se eligen las listas a unir (mínimo 2) y después el nombre de la nueva lista (por defecto, los nombres unidos con ' + ').
+Las listas elegidas se sustituyen por una sola lista con todos sus productos; si un producto está repetido aparece una única vez con las cantidades sumadas.
+Abajo aparece durante unos segundos el mensaje '[N] listas unidas en [NOMBRE]' con el botón 'Deshacer', que recupera las listas originales.

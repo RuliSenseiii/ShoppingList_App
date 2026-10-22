@@ -16,7 +16,10 @@ import com.example.shoppinglist.ui.shareList
 import com.example.shoppinglist.ui.showProductActions
 import com.google.android.material.button.MaterialButton
 
-/** Option 1: shows a list grouped by category and lets the user edit or share it. */
+/**
+ * Option 1: shows a list grouped by category and lets the user edit or share it.
+ * Also shows the "Recuento en casa", which is edited the same way but is not shared.
+ */
 class ListDetailActivity : AppCompatActivity() {
 
     private lateinit var listId: String
@@ -48,11 +51,15 @@ class ListDetailActivity : AppCompatActivity() {
     private fun render() {
         val list = repository.get(listId) ?: return finish()
         setupTopBar(list.name)
-        setupTopBarAction(R.drawable.ic_share, getString(R.string.share_list)) { shareList(list) }
+        if (!list.isHomeList) {
+            setupTopBarAction(R.drawable.ic_share, getString(R.string.share_list)) { shareList(list) }
+        }
         ProductListRenderer.render(content, list.products) { product ->
             showProductActions(listId, product) { render() }
         }
-        if (list.products.isEmpty()) {
+        if (list.products.isEmpty() && list.isHomeList) {
+            content.addEmptyState("🏠", getString(R.string.home_empty), getString(R.string.home_empty_hint))
+        } else if (list.products.isEmpty()) {
             content.addEmptyState(if (list.isMissingList) "✅" else "🧺", getString(R.string.empty_list), getString(R.string.empty_list_hint))
         }
     }

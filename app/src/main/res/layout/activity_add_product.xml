@@ -54,6 +54,22 @@
                     android:textSize="19sp"
                     android:textStyle="bold" />
 
+                <!-- "En casa tienes ...", shown while the name matches a product of the home count. -->
+                <TextView
+                    android:id="@+id/tvAtHome"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_pill_orange"
+                    android:paddingStart="14dp"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="8dp"
+                    android:textColor="@color/orange_dark"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
                 <LinearLayout
                     android:id="@+id/nameRow"
                     style="@style/InputRow">

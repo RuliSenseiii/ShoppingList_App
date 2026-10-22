@@ -40,6 +40,11 @@ data class ShoppingList(
     val inCart: MutableSet<String> = mutableSetOf(),
 ) {
     val isMissingList: Boolean get() = id == MISSING_LIST_ID
+    val isHomeList: Boolean get() = id == HOME_LIST_ID
+
+    /** The product with this name, ignoring case and surrounding spaces, whatever its category. */
+    fun findByName(name: String): Product? =
+        products.firstOrNull { it.name.equals(name.trim(), ignoreCase = true) }
 
     /** Adds the product, summing the quantity if the same product is already in the list. */
     fun addOrMerge(product: Product) {
@@ -56,5 +61,13 @@ data class ShoppingList(
 
     companion object {
         const val MISSING_LIST_ID = "missing"
+        /** "Recuento en casa": what the user has at home. Quantities can be 0 ("no me queda"). */
+        const val HOME_LIST_ID = "home"
+
+        /** A new list with the products of all [lists]; a product repeated across them appears once, summed. */
+        fun merged(name: String, lists: List<ShoppingList>): ShoppingList =
+            ShoppingList(name = name).also { merged ->
+                lists.flatMap { it.products }.forEach { merged.addOrMerge(it.copy(id = UUID.randomUUID().toString())) }
+            }
     }
 }

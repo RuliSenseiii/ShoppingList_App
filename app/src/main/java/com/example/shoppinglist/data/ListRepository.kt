@@ -6,10 +6,12 @@ import android.util.Log
 import androidx.core.content.edit
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 
 /**
  * Stores every shopping list as JSON in SharedPreferences.
  * The "Productos que me faltan" list always exists and uses [ShoppingList.MISSING_LIST_ID].
+ * The "Recuento en casa" (what the user has at home) is stored as one more list with [ShoppingList.HOME_LIST_ID].
  * Also remembers the products used before (name + category) to suggest them while typing.
  */
 class ListRepository private constructor(context: Context) {
@@ -17,14 +19,15 @@ class ListRepository private constructor(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val missingListName = context.getString(com.example.shoppinglist.R.string.missing_list_name)
+    private val homeListName = context.getString(com.example.shoppinglist.R.string.home_list_name)
 
     private val lists: MutableList<ShoppingList> = load()
 
     /** Products used before, most recent first, keyed by lowercase name. */
     private val history: LinkedHashMap<String, ProductSuggestion> = loadHistory()
 
-    /** User lists, without the missing-products list. */
-    fun userLists(): List<ShoppingList> = lists.filterNot { it.isMissingList }
+    /** User lists, without the missing-products list nor the home count. */
+    fun userLists(): List<ShoppingList> = lists.filterNot { it.isMissingList || it.isHomeList }
 
     fun missingList(): ShoppingList =
         lists.firstOrNull { it.isMissingList }
@@ -33,8 +36,21 @@ class ListRepository private constructor(context: Context) {
                 save()
             }
 
-    fun get(id: String): ShoppingList? =
-        if (id == ShoppingList.MISSING_LIST_ID) missingList() else lists.firstOrNull { it.id == id }
+    fun homeList(): ShoppingList =
+        lists.firstOrNull { it.isHomeList }
+            ?: ShoppingList(id = ShoppingList.HOME_LIST_ID, name = homeListName).also {
+                lists.add(it)
+                save()
+            }
+
+    fun get(id: String): ShoppingList? = when (id) {
+        ShoppingList.MISSING_LIST_ID -> missingList()
+        ShoppingList.HOME_LIST_ID -> homeList()
+        else -> lists.firstOrNull { it.id == id }
+    }
+
+    /** What the user has at home of the product with this name, or null if it is not in the home count. */
+    fun atHome(name: String): Product? = homeList().findByName(name)
 
     fun createList(name: String): ShoppingList =
         ShoppingList(name = name).also {
@@ -54,7 +70,34 @@ class ListRepository private constructor(context: Context) {
         }
 
     fun renameList(id: String, name: String) {
-        get(id)?.takeUnless { it.isMissingList }?.name = name
+        get(id)?.takeUnless { it.isMissingList || it.isHomeList }?.name = name
+        save()
+    }
+
+    /** The list made by [mergeLists] and the lists it replaced, so [undoMerge] can put them back. */
+    class MergedLists internal constructor(val merged: ShoppingList, internal val originals: List<DeletedList>)
+
+    /**
+     * Replaces the lists [ids] (in the order they are shown) with one list called [name] holding all
+     * their products; a product in several of them appears once with the quantities summed.
+     * The new list takes the place of the first of them. Nothing is in the cart yet.
+     */
+    fun mergeLists(ids: List<String>, name: String): MergedLists? {
+        val sources = userLists().filter { it.id in ids }
+        if (sources.size < 2) return null
+        val merged = ShoppingList.merged(name, sources)
+        val originals = sources.map { DeletedList(it, lists.indexOf(it)) }
+        lists.removeAll(sources)
+        lists.add(originals.minOf { it.index }.coerceAtMost(lists.size), merged)
+        merged.products.forEach { remember(it) }
+        save()
+        return MergedLists(merged, originals)
+    }
+
+    fun undoMerge(result: MergedLists) {
+        lists.removeAll { it.id == result.merged.id }
+        // In ascending order every list goes back to its old position.
+        result.originals.sortedBy { it.index }.forEach { restoreList(it) }
         save()
     }
 
@@ -62,6 +105,7 @@ class ListRepository private constructor(context: Context) {
     class DeletedList internal constructor(internal val list: ShoppingList, internal val index: Int)
 
     fun deleteList(id: String): DeletedList? {
+        if (id == ShoppingList.HOME_LIST_ID) return null
         if (id == ShoppingList.MISSING_LIST_ID) {
             missingList().products.clear()
             missingList().inCart.clear()
@@ -81,10 +125,61 @@ class ListRepository private constructor(context: Context) {
         save()
     }
 
+    /**
+     * Adds the product to the list. Noting a product in "Productos que me faltan" means it was used up,
+     * so its quantity is taken off the home count (never below 0).
+     * In the home count the quantity is not summed: it replaces what was counted before.
+     */
     fun addProduct(listId: String, product: Product) {
-        get(listId)?.addOrMerge(product)
+        when (listId) {
+            ShoppingList.HOME_LIST_ID -> setAtHome(product)
+            ShoppingList.MISSING_LIST_ID -> {
+                missingList().addOrMerge(product)
+                takeFromHome(product)
+            }
+            else -> get(listId)?.addOrMerge(product)
+        }
         remember(product)
         save()
+    }
+
+    private fun setAtHome(product: Product) {
+        val home = homeList()
+        val index = home.products.indexOfFirst { it.name.equals(product.name.trim(), ignoreCase = true) }
+        if (index >= 0) {
+            home.products[index] = home.products[index].copy(category = product.category, quantity = product.quantity)
+        } else {
+            home.products.add(product)
+        }
+    }
+
+    /**
+     * Everything in the list was bought: sums each product to the home count, adding the ones not
+     * counted yet. If it was counted the other way (kg / units) the bought amount replaces it.
+     */
+    fun addBoughtToHome(listId: String) {
+        val bought = get(listId)?.takeUnless { it.isHomeList }?.products ?: return
+        val home = homeList().products
+        bought.forEach { product ->
+            val index = home.indexOfFirst { it.name.equals(product.name.trim(), ignoreCase = true) }
+            when {
+                index < 0 -> home.add(product.copy(id = UUID.randomUUID().toString()))
+                home[index].category.usesKilograms == product.category.usesKilograms ->
+                    home[index] = home[index].copy(quantity = home[index].quantity + product.quantity)
+                else -> home[index] = home[index].copy(category = product.category, quantity = product.quantity)
+            }
+        }
+        save()
+    }
+
+    private fun takeFromHome(product: Product) {
+        val products = homeList().products
+        val index = products.indexOfFirst { it.name.equals(product.name.trim(), ignoreCase = true) }
+        if (index < 0) return
+        val atHome = products[index]
+        // Only when both are counted the same way (kg or units).
+        if (atHome.category.usesKilograms != product.category.usesKilograms) return
+        products[index] = atHome.copy(quantity = (atHome.quantity - product.quantity).coerceAtLeast(0.0))
     }
 
     /** A deleted product and where it was, so it can be put back with [restoreProduct]. */

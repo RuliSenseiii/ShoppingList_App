@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.shoppinglist.data.ListRepository
@@ -22,7 +23,10 @@ import com.example.shoppinglist.ui.gradientButton
 import com.example.shoppinglist.ui.setupTopBar
 import com.google.android.material.progressindicator.LinearProgressIndicator
 
-/** "VOY A COMPRAR": go through a list crossing products out as they go into the cart. */
+/**
+ * "VOY A COMPRAR": go through a list crossing products out as they go into the cart.
+ * Once the list is completed, what was bought is added to the "Recuento en casa".
+ */
 class ShoppingActivity : AppCompatActivity() {
 
     private val repository by lazy { ListRepository.get(this) }
@@ -154,6 +158,10 @@ class ShoppingActivity : AppCompatActivity() {
         )
     }
 
+    /**
+     * The home count is updated when one of the pop-up buttons is pressed: the pop-up cannot be
+     * dismissed and comes back if the user leaves, so each completed trip is counted exactly once.
+     */
     private fun checkCompleted() {
         val list = repository.get(listId) ?: return
         if (list.products.isEmpty() || !list.products.all { it.id in list.inCart }) return
@@ -163,8 +171,12 @@ class ShoppingActivity : AppCompatActivity() {
             subtitle = getString(R.string.list_completed_sub),
             badge = PopupBadge("🎉", ContextCompat.getColor(this, R.color.green)),
             actions = listOf(
-                PopupAction(getString(R.string.delete_list), R.drawable.ic_delete, green = false) { deleteListAndGoHome() },
+                PopupAction(getString(R.string.delete_list), R.drawable.ic_delete, green = false) {
+                    addBoughtToHome()
+                    deleteListAndGoHome()
+                },
                 PopupAction(getString(R.string.review_list), R.drawable.ic_visibility, green = true) {
+                    addBoughtToHome()
                     reviewing = true
                     repository.clearCart(listId)
                     render()
@@ -172,6 +184,11 @@ class ShoppingActivity : AppCompatActivity() {
             ),
             showClose = false,
         )
+    }
+
+    private fun addBoughtToHome() {
+        repository.addBoughtToHome(listId)
+        Toast.makeText(this, R.string.bought_added_home, Toast.LENGTH_SHORT).show()
     }
 
     private fun addDeleteListButton() {

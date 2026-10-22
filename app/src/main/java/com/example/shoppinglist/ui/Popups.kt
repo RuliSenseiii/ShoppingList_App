@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import com.example.shoppinglist.R
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.Product
+import com.example.shoppinglist.data.ShoppingList
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 data class PopupAction(
@@ -120,8 +121,11 @@ object Popups {
             .show()
     }
 
-    /** Asks for a new quantity, using kg (decimals) or units depending on the product category. */
-    fun editQuantity(activity: Activity, product: Product, onSaved: (Double) -> Unit) {
+    /**
+     * Asks for a new quantity, using kg (decimals) or units depending on the product category.
+     * [allowZero] is for the home count, where 0 means "no me queda".
+     */
+    fun editQuantity(activity: Activity, product: Product, allowZero: Boolean = false, onSaved: (Double) -> Unit) {
         val kilograms = product.category.usesKilograms
         val input = EditText(activity).apply {
             inputType = quantityInputType(kilograms)
@@ -158,7 +162,7 @@ object Popups {
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val value = parseQuantity(input.text.toString(), kilograms)
+                val value = parseQuantity(input.text.toString(), kilograms, allowZero)
                 if (value == null) {
                     Toast.makeText(activity, R.string.invalid_quantity, Toast.LENGTH_SHORT).show()
                 } else {
@@ -191,7 +195,7 @@ fun Activity.showProductActions(listId: String, product: Product, onChanged: () 
                 }
             },
             PopupAction(getString(R.string.edit_quantity), R.drawable.ic_edit, green = true) {
-                Popups.editQuantity(this, product) { quantity ->
+                Popups.editQuantity(this, product, allowZero = listId == ShoppingList.HOME_LIST_ID) { quantity ->
                     repository.updateQuantity(listId, product.id, quantity)
                     onChanged()
                 }
@@ -205,10 +209,13 @@ fun quantityInputType(kilograms: Boolean): Int =
     if (kilograms) InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
     else InputType.TYPE_CLASS_NUMBER
 
-/** Accepts "1,5" or "1.5" for kg and whole numbers for units. Returns null if not a positive amount. */
-fun parseQuantity(text: String, kilograms: Boolean): Double? {
+/**
+ * Accepts "1,5" or "1.5" for kg and whole numbers for units. Returns null if not a positive amount
+ * (or, with [allowZero], a negative one).
+ */
+fun parseQuantity(text: String, kilograms: Boolean, allowZero: Boolean = false): Double? {
     val value = text.trim().replace(',', '.').toDoubleOrNull() ?: return null
-    if (value <= 0.0) return null
+    if (value < 0.0 || (value == 0.0 && !allowZero)) return null
     if (!kilograms && value % 1.0 != 0.0) return null
     return value
 }

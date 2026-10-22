@@ -67,7 +67,7 @@
     <string name="unit_units">uds</string>
     <string name="cart_progress_title">🛒 En el carro</string>
     <string name="cart_progress_count">%1$d / %2$d</string>
-    <string name="list_completed_sub">¡Todo en el carro! ¿Qué quieres hacer con la lista?</string>
+    <string name="list_completed_sub">¡Todo en el carro! Lo comprado se sumará a tu recuento en casa. ¿Qué quieres hacer con la lista?</string>
     <string name="show_missing_sub">Se añadirán a esta lista para que no se te olvide nada.</string>
     <!-- Sharing lists -->
     <string name="share_list">Compartir lista</string>
@@ -90,6 +90,30 @@
     <string name="rename_list">Renombrar lista</string>
     <string name="delete_list_question">¿Eliminar la lista \"%1$s\"?</string>
     <string name="cart_progress_sub">🛒 %1$d de %2$d en el carro</string>
+
+    <!-- V0.5 -->
+    <string name="banner_home">Recuento en casa</string>
+    <string name="banner_home_empty">Apunta lo que tienes en casa</string>
+    <plurals name="banner_home_sub">
+        <item quantity="one">%1$d producto contado</item>
+        <item quantity="other">%1$d productos contados</item>
+    </plurals>
+    <string name="home_list_name">Recuento en casa</string>
+    <string name="home_empty">Todavía no has contado nada.</string>
+    <string name="home_empty_hint">Pulsa \"Añadir producto\" para apuntar lo que tienes en casa.</string>
+    <string name="at_home">🏠 En casa tienes %1$s</string>
+    <string name="at_home_none">🏠 En casa no te queda</string>
+    <string name="saved_at_home">Guardado en \"Recuento en casa\"</string>
+    <string name="bought_added_home">🏠 Compra sumada al recuento en casa</string>
+    <string name="merge_lists">Unir listas</string>
+    <string name="merge_lists_choose">¿Qué listas quieres unir?</string>
+    <string name="merge_lists_need_two">Elige al menos 2 listas</string>
+    <string name="merge_action">Unir</string>
+    <string name="merged_list_name">Nombre de la lista unida</string>
+    <plurals name="lists_merged">
+        <item quantity="one">%1$d lista unida en \"%2$s\"</item>
+        <item quantity="other">%1$d listas unidas en \"%2$s\"</item>
+    </plurals>
 
     <string name="empty_list_hint">Pulsa \"Añadir producto\" para empezar a llenarla.</string>
 </resources>

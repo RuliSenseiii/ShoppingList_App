@@ -44,11 +44,13 @@ import com.google.android.material.button.MaterialButton
  * was opened the product goes to:
  *  - EDIT_LIST: the list being edited (from option 1).
  *  - NEW_LIST: a new list, created when the first product is added (option 2).
- *  - MISSING: the "Productos que me faltan" list (option 3).
+ *  - MISSING: the "Productos que me faltan" list (option 3). Its quantity is taken off the home count.
+ *  - HOME: the "Recuento en casa"; the quantity replaces what was counted before.
+ * Once the name matches a product of the home count, how much there is at home is shown above the form.
  */
 class AddProductActivity : AppCompatActivity() {
 
-    enum class Mode { EDIT_LIST, NEW_LIST, MISSING }
+    enum class Mode { EDIT_LIST, NEW_LIST, MISSING, HOME }
 
     private val repository by lazy { ListRepository.get(this) }
     private lateinit var mode: Mode
@@ -65,6 +67,7 @@ class AddProductActivity : AppCompatActivity() {
     private lateinit var tvUnit: TextView
     private lateinit var btnAdd: MaterialButton
     private lateinit var tvTarget: TextView
+    private lateinit var tvAtHome: TextView
     private lateinit var tvCurrentTitle: TextView
     private lateinit var content: LinearLayout
 
@@ -77,6 +80,7 @@ class AddProductActivity : AppCompatActivity() {
         listId = savedInstanceState?.getString(STATE_LIST_ID) ?: when (mode) {
             Mode.EDIT_LIST -> intent.getStringExtra(EXTRA_LIST_ID)
             Mode.MISSING -> ShoppingList.MISSING_LIST_ID
+            Mode.HOME -> ShoppingList.HOME_LIST_ID
             Mode.NEW_LIST -> null
         }
         newListName = savedInstanceState?.getString(STATE_NEW_LIST_NAME)
@@ -89,6 +93,7 @@ class AddProductActivity : AppCompatActivity() {
         tvUnit = findViewById(R.id.tvUnit)
         btnAdd = findViewById(R.id.btnAdd)
         tvTarget = findViewById(R.id.tvTarget)
+        tvAtHome = findViewById(R.id.tvAtHome)
         tvCurrentTitle = findViewById(R.id.tvCurrentTitle)
         content = findViewById(R.id.content)
 
@@ -103,6 +108,7 @@ class AddProductActivity : AppCompatActivity() {
             askNewListName()
         }
         renderTarget()
+        renderAtHome()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -130,6 +136,7 @@ class AddProductActivity : AppCompatActivity() {
                 repository.suggestions().firstOrNull { it.name.equals(typed, ignoreCase = true) }
                     ?.let { selectCategory(it.category, moveToQuantity = false) }
             }
+            renderAtHome()
             updateAddButton()
         }
     }
@@ -205,6 +212,17 @@ class AddProductActivity : AppCompatActivity() {
         }
     }
 
+    /** "En casa tienes 2 uds" above the form while the name matches a product of the home count. */
+    private fun renderAtHome() {
+        val atHome = repository.atHome(etName.text.toString())
+        tvAtHome.visibility = if (atHome == null) View.GONE else View.VISIBLE
+        if (atHome != null) {
+            tvAtHome.text =
+                if (atHome.quantity > 0.0) getString(R.string.at_home, atHome.formattedQuantity)
+                else getString(R.string.at_home_none)
+        }
+    }
+
     private fun selectCategory(category: Category?, moveToQuantity: Boolean) {
         selectedCategory = category
         renderCategoryGrid()
@@ -233,7 +251,7 @@ class AddProductActivity : AppCompatActivity() {
 
     private fun currentQuantity(): Double? {
         val category = selectedCategory ?: return null
-        return parseQuantity(etQuantity.text.toString(), category.usesKilograms)
+        return parseQuantity(etQuantity.text.toString(), category.usesKilograms, allowZero = mode == Mode.HOME)
     }
 
     private fun updateAddButton() {
@@ -248,7 +266,8 @@ class AddProductActivity : AppCompatActivity() {
 
         val targetId = listId ?: repository.createList(newListName ?: defaultListName()).id.also { listId = it }
         repository.addProduct(targetId, Product(name = name, category = category, quantity = quantity))
-        Toast.makeText(this, getString(R.string.added_to, targetName()), Toast.LENGTH_SHORT).show()
+        val message = if (mode == Mode.HOME) getString(R.string.saved_at_home) else getString(R.string.added_to, targetName())
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
         selectCategory(null, moveToQuantity = false)
         etName.text.clear()
@@ -297,6 +316,8 @@ class AddProductActivity : AppCompatActivity() {
         fun editListIntent(context: Context, listId: String): Intent =
             if (listId == ShoppingList.MISSING_LIST_ID) {
                 missingListIntent(context)
+            } else if (listId == ShoppingList.HOME_LIST_ID) {
+                Intent(context, AddProductActivity::class.java).putExtra(EXTRA_MODE, Mode.HOME.name)
             } else {
                 Intent(context, AddProductActivity::class.java)
                     .putExtra(EXTRA_MODE, Mode.EDIT_LIST.name)
