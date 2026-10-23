@@ -261,6 +261,8 @@ class ListRepository private constructor(context: Context) {
     }
 
     private fun save() {
+        // A product that ran out at home no longer shows in the home count.
+        lists.firstOrNull { it.isHomeList }?.products?.removeAll { it.quantity <= 0.0 }
         val array = JSONArray()
         lists.forEach { list ->
             val products = JSONArray()
