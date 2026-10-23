@@ -28,6 +28,9 @@ object ProductListRenderer {
     ) {
         container.removeAllViews()
         val context = container.context
+        // The tutorial points at the first product still to buy and at the first crossed one.
+        var rowTagged = false
+        var crossedTagged = false
         val inflater = LayoutInflater.from(context)
 
         Category.entries.forEach { category ->
@@ -86,7 +89,16 @@ object ProductListRenderer {
                 elevation = context.dp(2).toFloat()
             }
             items.forEachIndexed { index, product ->
-                card.addView(productRow(inflater, card, product, index, color, product.id in crossedIds, onProductClick))
+                val crossed = product.id in crossedIds
+                val row = productRow(inflater, card, product, index, color, crossed, onProductClick)
+                if (crossed && !crossedTagged) {
+                    row.tag = "tut:product_crossed"
+                    crossedTagged = true
+                } else if (!crossed && !rowTagged) {
+                    row.tag = "tut:product_row"
+                    rowTagged = true
+                }
+                card.addView(row)
             }
             container.addView(
                 card,

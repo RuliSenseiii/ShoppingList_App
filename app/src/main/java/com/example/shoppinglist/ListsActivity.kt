@@ -26,6 +26,8 @@ import com.example.shoppinglist.data.Category
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.ShoppingList
 import com.example.shoppinglist.ui.PopupAction
+import com.example.shoppinglist.ui.TutorialGuide
+import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.PopupBadge
 import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.addEmptyState
@@ -50,11 +52,18 @@ import com.google.android.material.button.MaterialButton
  *  - The "Importar lista" button, which opens the file picker.
  * Also in MANAGE mode each list has a checkbox; with 2 or more ticked, the bottom button joins them into one.
  */
-class ListsActivity : AppCompatActivity() {
+class ListsActivity : AppCompatActivity(), TutorialScreen {
 
     enum class Mode { MANAGE, SHOP }
 
     private lateinit var mode: Mode
+
+    override val screenId get() = if (mode == Mode.SHOP) "lists_shop" else "lists_manage"
+
+    override fun replayTutorialEvents() {
+        if (selectedIds.size >= 1) TutorialGuide.emit(this, "selection_started")
+        if (selectedIds.size >= 2) TutorialGuide.emit(this, "selected_two")
+    }
     private lateinit var content: LinearLayout
     private val selectedIds = linkedSetOf<String>()
     private val repository by lazy { ListRepository.get(this) }
@@ -97,6 +106,7 @@ class ListsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         render()
+        TutorialGuide.attach(this)
     }
 
     override fun onBackPressed() {
@@ -114,7 +124,15 @@ class ListsActivity : AppCompatActivity() {
 
         val lists = repository.userLists()
         selectedIds.retainAll(lists.map { it.id }.toSet())
-        lists.forEach { addCard(it) }
+        // Lists the tutorial points at: the first two, and the first one with enough products to use.
+        val fullEnough = lists.firstOrNull { it.products.size >= if (mode == Mode.SHOP) 2 else 1 }
+        lists.forEachIndexed { index, list ->
+            val tags = buildList {
+                if (index < 2) add("tut:list_card_${index + 1}")
+                if (list === fullEnough) add("tut:list_card_full")
+            }
+            addCard(list, tags, renameTag = if (list === fullEnough) "tut:list_rename_full" else null)
+        }
         updateBottomButton()
 
         if (lists.isEmpty()) content.addEmptyState("📝", getString(R.string.no_lists))
@@ -126,6 +144,7 @@ class ListsActivity : AppCompatActivity() {
     private fun toggle(list: ShoppingList) {
         if (!selectedIds.remove(list.id)) selectedIds.add(list.id)
         render()
+        TutorialGuide.emit(this, "selection_changed")
     }
 
     /** MANAGE mode: "Unir listas" while 2 or more lists are ticked, otherwise "Importar lista". */
@@ -141,12 +160,15 @@ class ListsActivity : AppCompatActivity() {
             } else {
                 text = getString(R.string.import_list)
                 setIconResource(R.drawable.ic_download)
-                setOnClickListener { pickListFile.launch(IMPORT_FILE_TYPES) }
+                setOnClickListener {
+                    TutorialGuide.emit(this@ListsActivity, "import_opened")
+                    pickListFile.launch(IMPORT_FILE_TYPES)
+                }
             }
         }
     }
 
-    private fun addCard(list: ShoppingList) {
+    private fun addCard(list: ShoppingList, tutorialTags: List<String> = emptyList(), renameTag: String? = null) {
         val missing = list.isMissingList
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -156,6 +178,7 @@ class ListsActivity : AppCompatActivity() {
             setPadding(dp(16), dp(16), dp(12), dp(16))
             isClickable = true
             isFocusable = true
+            tag = tutorialTags.joinToString(",").ifEmpty { null }
             setOnClickListener { if (selecting && !missing) toggle(list) else open(list) }
             if (mode == Mode.MANAGE && !missing) setOnLongClickListener { toggle(list); true }
         }
@@ -222,7 +245,7 @@ class ListsActivity : AppCompatActivity() {
         if (mode == Mode.MANAGE && !missing) {
             card.addView(cardButton(R.drawable.ic_edit, getString(R.string.rename_list), R.color.green_mid) {
                 rename(list)
-            })
+            }.apply { tag = renameTag })
             card.addView(cardButton(R.drawable.ic_delete, getString(R.string.delete_list), R.color.orange) {
                 delete(list)
             })
@@ -262,6 +285,7 @@ class ListsActivity : AppCompatActivity() {
         }
 
     private fun rename(list: ShoppingList) {
+        TutorialGuide.emit(this, "rename_dialog")
         Popups.askListName(
             activity = this,
             title = getString(R.string.rename_list),
@@ -270,6 +294,7 @@ class ListsActivity : AppCompatActivity() {
         ) { name ->
             repository.renameList(list.id, name)
             render()
+            TutorialGuide.emit(this, "list_renamed")
         }
     }
 
@@ -296,13 +321,14 @@ class ListsActivity : AppCompatActivity() {
 
     /** Shows which lists are about to be joined and asks for confirmation. */
     private fun confirmMerge(chosen: List<ShoppingList>) {
+        TutorialGuide.emit(this, "merge_confirm")
         Popups.show(
             activity = this,
             title = getString(R.string.merge_confirm_title, chosen.size),
             subtitle = chosen.joinToString("\n") { "• ${it.name} (${resources.getQuantityString(R.plurals.products_count, it.products.size, it.products.size)})" },
             badge = PopupBadge("🔗", ContextCompat.getColor(this, R.color.green_mid)),
             actions = listOf(
-                PopupAction(getString(R.string.merge_action), R.drawable.ic_merge, green = true) { nameMergedList(chosen) },
+                PopupAction(getString(R.string.merge_action), R.drawable.ic_merge, green = true, tutorialKey = "merge") { nameMergedList(chosen) },
             ),
             showClose = true,
         )
@@ -310,6 +336,7 @@ class ListsActivity : AppCompatActivity() {
 
     /** Joins [chosen] into one list; "Deshacer" brings the original lists back for a few seconds. */
     private fun nameMergedList(chosen: List<ShoppingList>) {
+        TutorialGuide.emit(this, "merge_name")
         Popups.askListName(
             activity = this,
             title = getString(R.string.merged_list_name),
@@ -319,6 +346,7 @@ class ListsActivity : AppCompatActivity() {
             val result = repository.mergeLists(chosen.map { it.id }, name) ?: return@askListName
             selectedIds.clear()
             render()
+            TutorialGuide.emit(this, "merged")
             showUndo(resources.getQuantityString(R.plurals.lists_merged, chosen.size, chosen.size, name)) {
                 repository.undoMerge(result)
                 render()

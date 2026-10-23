@@ -16,6 +16,8 @@ import com.example.shoppinglist.ui.PopupAction
 import com.example.shoppinglist.ui.PopupBadge
 import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.ProductListRenderer
+import com.example.shoppinglist.ui.TutorialGuide
+import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.addEmptyState
 import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.dp
@@ -27,7 +29,10 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
  * "VOY A COMPRAR": go through a list crossing products out as they go into the cart.
  * Once the list is completed, what was bought is added to the "Recuento en casa".
  */
-class ShoppingActivity : AppCompatActivity() {
+class ShoppingActivity : AppCompatActivity(), TutorialScreen {
+
+    override val screenId = "shopping"
+
 
     private val repository by lazy { ListRepository.get(this) }
     private lateinit var listId: String
@@ -53,6 +58,11 @@ class ShoppingActivity : AppCompatActivity() {
                 checkCompleted()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        TutorialGuide.attach(this)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -189,17 +199,20 @@ class ShoppingActivity : AppCompatActivity() {
             // Tapping a crossed-out product undoes it, in case it was marked by mistake.
             repository.setInCart(listId, product.id, false)
             render()
+            TutorialGuide.emit(this, "uncart")
             return
         }
+        TutorialGuide.emit(this, "cart_popup")
         Popups.show(
             activity = this,
             title = "${product.name}  ${product.formattedQuantity}",
             subtitle = product.category.label,
             badge = PopupBadge(product.category.emoji, ContextCompat.getColor(this, product.category.colorRes)),
             actions = listOf(
-                PopupAction(getString(R.string.in_cart), R.drawable.ic_cart, green = true) {
+                PopupAction(getString(R.string.in_cart), R.drawable.ic_cart, green = true, tutorialKey = "in_cart") {
                     repository.setInCart(listId, product.id, true)
                     render()
+                    TutorialGuide.emit(this, "in_cart")
                     checkCompleted()
                 },
                 PopupAction(getString(R.string.missing), R.drawable.ic_cancel, green = false) {},

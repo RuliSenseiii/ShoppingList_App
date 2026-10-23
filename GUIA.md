@@ -1,6 +1,6 @@
 # 🛒 Guía de uso — Lista de la compra
 
-> Guía para usuarios. Versión de la app: **V0.7**.
+> Guía para usuarios. Versión de la app: **V0.7.1**.
 > Esta guía se actualiza con cada nueva versión o funcionalidad (ver el [historial de cambios](#-historial-de-cambios)).
 
 Dentro de la app también tienes un **tutorial interactivo**: pulsa el botón **?** de la pantalla principal y elige solo las partes que quieras aprender.
@@ -97,7 +97,18 @@ La app te pregunta si quieres añadir la lista y, si aceptas, la guarda en tus l
 
 ## 9. Tutorial dentro de la app
 
-El botón **?** de la pantalla principal abre el tutorial en cualquier momento. Muestra los temas disponibles para que elijas solo el que te interesa, y cada paso puede llevarte a la pantalla real para que lo pruebes. La primera vez que abres la app sin tener listas, te ofrece verlo.
+El botón **?** de la pantalla principal abre el tutorial en cualquier momento. Está formado por temas independientes (crear una lista, mis listas, unir listas, productos que me faltan, voy a comprar, recuento en casa y compartir e importar): elige solo el que te interese.
+
+Al elegir un tema, la app te lleva a la pantalla principal y te guía **por la propia app**:
+
+- El botón que debes usar se **ilumina** (el resto de la pantalla se oscurece) y una tarjeta te explica qué hacer.
+- **El tutorial solo avanza cuando haces lo que te pide**: pulsar el botón, escribir el producto, elegir la categoría, etc.
+- Puedes **salir cuando quieras** con **✕ Salir** en la tarjeta.
+- Si te sales de la pantalla del paso, la tarjeta te indica cómo volver (flecha ← o botón **?** para empezar el tema de nuevo).
+- Algunos temas necesitan datos previos (por ejemplo, "Unir listas" necesita dos listas). Si faltan, la app te avisa de qué hacer antes.
+- Ten en cuenta que el tutorial usa tu app de verdad: lo que crees o unas durante un tema queda guardado (puedes borrarlo después).
+
+La primera vez que abres la app sin tener listas, te ofrece ver el tutorial.
 
 ---
 
@@ -105,7 +116,8 @@ El botón **?** de la pantalla principal abre el tutorial en cualquier momento. 
 
 | Versión | Novedades |
 |---|---|
-| **V0.7** | Tutorial interactivo dentro de la app (botón **?**) y esta guía de uso |
+| **V0.7.1** | El tutorial ahora te guía por la propia app: ilumina los botones y avanza cuando haces lo que indica; puedes salir en cualquier momento |
+| **V0.7** | Tutorial dentro de la app (botón **?**) y esta guía de uso |
 | **V0.6.1** | Los productos del recuento en casa desaparecen al llegar a 0 |
 | **V0.6** | Selección de listas con pulsación larga y confirmación al unirlas; terminar la compra en cualquier momento conservando lo no comprado |
 | **V0.5** | Recuento en casa y unir listas |

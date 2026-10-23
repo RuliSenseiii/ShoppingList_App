@@ -8,6 +8,8 @@ import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.ui.ProductListRenderer
+import com.example.shoppinglist.ui.TutorialGuide
+import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.addEmptyState
 import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.setupTopBar
@@ -20,7 +22,10 @@ import com.google.android.material.button.MaterialButton
  * Option 1: shows a list grouped by category and lets the user edit or share it.
  * Also shows the "Recuento en casa", which is edited the same way but is not shared.
  */
-class ListDetailActivity : AppCompatActivity() {
+class ListDetailActivity : AppCompatActivity(), TutorialScreen {
+
+    override val screenId = "detail"
+
 
     private lateinit var listId: String
     private lateinit var content: LinearLayout
@@ -46,13 +51,17 @@ class ListDetailActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         render()
+        TutorialGuide.attach(this)
     }
 
     private fun render() {
         val list = repository.get(listId) ?: return finish()
         setupTopBar(list.name)
         if (!list.isHomeList) {
-            setupTopBarAction(R.drawable.ic_share, getString(R.string.share_list)) { shareList(list) }
+            setupTopBarAction(R.drawable.ic_share, getString(R.string.share_list)) {
+                TutorialGuide.emit(this, "share_opened")
+                shareList(list)
+            }
         }
         ProductListRenderer.render(content, list.products) { product ->
             showProductActions(listId, product) { render() }

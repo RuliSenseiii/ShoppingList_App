@@ -123,11 +123,14 @@
     <!-- V0.7 tutorial -->
     <string name="tutorial_title">Tutorial</string>
     <string name="tutorial_help">Abrir el tutorial</string>
-    <string name="tutorial_intro">Elige lo que quieras aprender. Puedes ver solo las partes que te interesen y volver aquí cuando quieras.</string>
-    <string name="tutorial_step_count">Paso %1$d de %2$d</string>
-    <string name="tutorial_next">Siguiente</string>
-    <string name="tutorial_previous">Anterior</string>
-    <string name="tutorial_finish">Terminar</string>
+    <string name="tutorial_intro">Elige un tema. La app te irá marcando los botones que tienes que pulsar y avanzará cuando lo hagas. Puedes salir cuando quieras.</string>
+    <string name="tutorial_exit">✕ Salir</string>
+    <string name="tutorial_header">🎓 Paso %1$d de %2$d · %3$s</string>
+    <string name="tutorial_wrong_screen">Esta no es la pantalla del paso. Usa la flecha ← para volver (o el botón ? para empezar el tema de nuevo).</string>
+    <string name="tutorial_topic_done">¡Tema completado!</string>
+    <string name="tutorial_more_topics">Ver más temas</string>
+    <string name="tutorial_steps_count">%1$d pasos</string>
+    <string name="tutorial_understood">Entendido</string>
     <string name="tutorial_offer_title">¿Quieres ver el tutorial?</string>
     <string name="tutorial_offer_sub">Te enseña a usar la app paso a paso. Podrás abrirlo siempre desde el botón ? de la pantalla principal.</string>
     <string name="tutorial_offer_yes">Ver tutorial</string>

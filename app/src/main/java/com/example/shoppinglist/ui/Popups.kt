@@ -26,6 +26,8 @@ data class PopupAction(
     val label: String,
     @param:DrawableRes val icon: Int?,
     val green: Boolean,
+    /** Name the tutorial uses to point at this button ("popup_<key>"). */
+    val tutorialKey: String? = null,
     val onClick: () -> Unit,
 )
 
@@ -64,12 +66,14 @@ object Popups {
             .create()
 
         view.findViewById<ImageButton>(R.id.btnPopupClose).apply {
+            tag = "tut:popup_close"
             visibility = if (showClose) View.VISIBLE else View.GONE
             setOnClickListener { dialog.dismiss() }
         }
         val buttons = view.findViewById<LinearLayout>(R.id.popupButtons)
         actions.forEach { action ->
             val button = gradientButton(activity, action.label, action.icon, action.green).apply {
+                action.tutorialKey?.let { tag = "tut:popup_$it" }
                 setOnClickListener {
                     dialog.dismiss()
                     action.onClick()
@@ -82,6 +86,7 @@ object Popups {
             )
         }
         dialog.show()
+        TutorialGuide.dialogShown(activity, dialog)
         return dialog
     }
 
@@ -112,13 +117,15 @@ object Popups {
             setPadding(activity.dp(24), activity.dp(8), activity.dp(24), 0)
             addView(input, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, activity.dp(56)))
         }
-        MaterialAlertDialogBuilder(activity)
+        val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle("📝  $title")
             .setView(wrapper)
             .setCancelable(onCancel == null)
             .setNegativeButton(R.string.cancel) { _, _ -> onCancel?.invoke() }
             .setPositiveButton(positiveLabel) { _, _ -> onSaved(input.text.toString().trim().ifEmpty { initial }) }
             .show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).tag = "tut:dialog_positive"
+        TutorialGuide.dialogShown(activity, dialog)
     }
 
     /**
@@ -172,12 +179,15 @@ object Popups {
             }
         }
         dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).tag = "tut:dialog_positive"
+        TutorialGuide.dialogShown(activity, dialog)
     }
 }
 
 /** Pop-up shown when tapping a product while editing a list: delete it, edit its quantity or close. */
 fun Activity.showProductActions(listId: String, product: Product, onChanged: () -> Unit) {
     val repository = ListRepository.get(this)
+    TutorialGuide.emit(this, "product_popup")
     Popups.show(
         activity = this,
         title = product.name,

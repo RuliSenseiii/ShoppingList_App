@@ -26,6 +26,8 @@ import com.example.shoppinglist.data.Product
 import com.example.shoppinglist.data.ProductSuggestion
 import com.example.shoppinglist.data.ShoppingList
 import com.example.shoppinglist.ui.Popups
+import com.example.shoppinglist.ui.TutorialGuide
+import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.ProductListRenderer
 import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.dp
@@ -48,12 +50,30 @@ import com.google.android.material.button.MaterialButton
  *  - HOME: the "Recuento en casa"; the quantity replaces what was counted before.
  * Once the name matches a product of the home count, how much there is at home is shown above the form.
  */
-class AddProductActivity : AppCompatActivity() {
+class AddProductActivity : AppCompatActivity(), TutorialScreen {
 
     enum class Mode { EDIT_LIST, NEW_LIST, MISSING, HOME }
 
     private val repository by lazy { ListRepository.get(this) }
     private lateinit var mode: Mode
+
+    override val screenId get() = when (mode) {
+        Mode.NEW_LIST -> "add_new"
+        Mode.MISSING -> "add_missing"
+        Mode.HOME -> "add_home"
+        Mode.EDIT_LIST -> "add_edit"
+    }
+
+    override fun replayTutorialEvents() {
+        if (etName.text.isNotBlank()) TutorialGuide.emit(this, "name_typed")
+        if (selectedCategory != null) TutorialGuide.emit(this, "category_selected")
+        if (btnAdd.visibility == View.VISIBLE) TutorialGuide.emit(this, "quantity_ready")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        TutorialGuide.attach(this)
+    }
 
     /** Target list; null in NEW_LIST mode until the first product is added. */
     private var listId: String? = null
@@ -257,6 +277,7 @@ class AddProductActivity : AppCompatActivity() {
     private fun updateAddButton() {
         val ready = etName.text.isNotBlank() && selectedCategory != null && currentQuantity() != null
         btnAdd.visibility = if (ready) View.VISIBLE else View.GONE
+        TutorialGuide.emit(this, "form_changed")
     }
 
     private fun addProduct() {
@@ -274,6 +295,7 @@ class AddProductActivity : AppCompatActivity() {
         etName.setAdapter(suggestionsAdapter()) // Now includes the product just added.
         etName.requestFocus()
         renderTarget()
+        TutorialGuide.emit(this, "product_added")
     }
 
     private fun targetName(): String =
@@ -302,6 +324,7 @@ class AddProductActivity : AppCompatActivity() {
         ) { name ->
             newListName = name
             renderTarget()
+            TutorialGuide.emit(this, "list_named")
         }
     }
 

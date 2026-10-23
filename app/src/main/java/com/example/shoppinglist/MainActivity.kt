@@ -10,9 +10,14 @@ import androidx.core.content.ContextCompat
 import com.example.shoppinglist.ui.PopupAction
 import com.example.shoppinglist.ui.PopupBadge
 import com.example.shoppinglist.ui.Popups
+import com.example.shoppinglist.ui.TutorialGuide
+import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.applySystemBarInsets
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), TutorialScreen {
+
+    override val screenId = "main"
+
 
     private val repository by lazy { ListRepository.get(this) }
 
@@ -89,5 +94,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvHomeSub).text =
             if (atHome == 0) getString(R.string.banner_home_empty)
             else resources.getQuantityString(R.plurals.banner_home_sub, atHome, atHome)
+        TutorialGuide.attach(this)
     }
 }
