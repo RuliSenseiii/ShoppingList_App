@@ -106,8 +106,7 @@
     <string name="saved_at_home">Guardado en \"Recuento en casa\"</string>
     <string name="bought_added_home">🏠 Compra sumada al recuento en casa</string>
     <string name="merge_lists">Unir listas</string>
-    <string name="merge_lists_choose">¿Qué listas quieres unir?</string>
-    <string name="merge_lists_need_two">Elige al menos 2 listas</string>
+    <string name="merge_confirm_title">¿Unir estas %1$d listas?</string>
     <string name="merge_action">Unir</string>
     <string name="merged_list_name">Nombre de la lista unida</string>
     <plurals name="lists_merged">

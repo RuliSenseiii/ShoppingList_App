@@ -9,16 +9,16 @@ import android.os.Bundle
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
+import android.content.res.ColorStateList
+import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
@@ -37,10 +37,8 @@ import com.example.shoppinglist.ui.IMPORT_FILE_TYPES
 import com.example.shoppinglist.ui.importSharedFile
 import com.example.shoppinglist.ui.importSharedText
 import com.example.shoppinglist.ui.setupTopBar
-import com.example.shoppinglist.ui.setupTopBarAction
 import com.example.shoppinglist.ui.showUndo
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Shows the saved lists.
@@ -50,7 +48,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
  *  - Tapping a received ".listacompra" file opens this screen with it (ACTION_VIEW).
  *  - Sharing the file, or a V0.2/V0.3 message with a text code, with the app (ACTION_SEND).
  *  - The "Importar lista" button, which opens the file picker.
- * Also in MANAGE mode, with 2 or more lists, the top-right button joins the chosen lists into one.
+ * Also in MANAGE mode each list has a checkbox; with 2 or more ticked, the bottom button joins them into one.
  */
 class ListsActivity : AppCompatActivity() {
 
@@ -58,6 +56,7 @@ class ListsActivity : AppCompatActivity() {
 
     private lateinit var mode: Mode
     private lateinit var content: LinearLayout
+    private val selectedIds = linkedSetOf<String>()
     private val repository by lazy { ListRepository.get(this) }
 
     private val pickListFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -72,14 +71,6 @@ class ListsActivity : AppCompatActivity() {
         setupTopBar(getString(if (mode == Mode.SHOP) R.string.choose_list_title else R.string.my_lists_title))
         content = findViewById(R.id.content)
 
-        if (mode == Mode.MANAGE) {
-            findViewById<MaterialButton>(R.id.btnBottom).apply {
-                visibility = View.VISIBLE
-                text = getString(R.string.import_list)
-                setIconResource(R.drawable.ic_download)
-                setOnClickListener { pickListFile.launch(IMPORT_FILE_TYPES) }
-            }
-        }
         if (savedInstanceState == null) importFromIntent()
     }
 
@@ -113,15 +104,29 @@ class ListsActivity : AppCompatActivity() {
         if (mode == Mode.MANAGE) addCard(repository.missingList())
 
         val lists = repository.userLists()
+        selectedIds.retainAll(lists.map { it.id }.toSet())
         lists.forEach { addCard(it) }
-
-        if (mode == Mode.MANAGE && lists.size >= 2) {
-            setupTopBarAction(R.drawable.ic_merge, getString(R.string.merge_lists)) { chooseListsToMerge() }
-        } else {
-            findViewById<View>(R.id.btnTopAction).visibility = View.GONE
-        }
+        updateBottomButton()
 
         if (lists.isEmpty()) content.addEmptyState("📝", getString(R.string.no_lists))
+    }
+
+    /** MANAGE mode: "Unir listas" while 2 or more lists are ticked, otherwise "Importar lista". */
+    private fun updateBottomButton() {
+        if (mode != Mode.MANAGE) return
+        val merge = selectedIds.size >= 2
+        findViewById<MaterialButton>(R.id.btnBottom).apply {
+            visibility = View.VISIBLE
+            if (merge) {
+                text = getString(R.string.merge_lists)
+                setIconResource(R.drawable.ic_merge)
+                setOnClickListener { confirmMerge(repository.userLists().filter { it.id in selectedIds }) }
+            } else {
+                text = getString(R.string.import_list)
+                setIconResource(R.drawable.ic_download)
+                setOnClickListener { pickListFile.launch(IMPORT_FILE_TYPES) }
+            }
+        }
     }
 
     private fun addCard(list: ShoppingList) {
@@ -135,6 +140,20 @@ class ListsActivity : AppCompatActivity() {
             isClickable = true
             isFocusable = true
             setOnClickListener { open(list) }
+        }
+
+        if (mode == Mode.MANAGE && !missing) {
+            card.addView(CheckBox(this).apply {
+                isChecked = list.id in selectedIds
+                buttonTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.green_mid))
+                contentDescription = list.name
+                setOnCheckedChangeListener { _, checked ->
+                    if (checked) selectedIds.add(list.id) else selectedIds.remove(list.id)
+                    updateBottomButton()
+                }
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                marginEnd = dp(8)
+            })
         }
 
         // Gradient circle with an icon.
@@ -260,31 +279,18 @@ class ListsActivity : AppCompatActivity() {
         )
     }
 
-    /** Lets the user tick the lists to join (at least 2), then name the joined list. */
-    private fun chooseListsToMerge() {
-        val lists = repository.userLists()
-        val checked = BooleanArray(lists.size)
-        val labels = lists.map {
-            "${it.name}  (${resources.getQuantityString(R.plurals.products_count, it.products.size, it.products.size)})"
-        }.toTypedArray()
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(getString(R.string.merge_lists_choose))
-            .setMultiChoiceItems(labels, checked) { _, which, isChecked -> checked[which] = isChecked }
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.merge_action, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val chosen = lists.filterIndexed { index, _ -> checked[index] }
-                if (chosen.size < 2) {
-                    Toast.makeText(this, R.string.merge_lists_need_two, Toast.LENGTH_SHORT).show()
-                } else {
-                    dialog.dismiss()
-                    nameMergedList(chosen)
-                }
-            }
-        }
-        dialog.show()
+    /** Shows which lists are about to be joined and asks for confirmation. */
+    private fun confirmMerge(chosen: List<ShoppingList>) {
+        Popups.show(
+            activity = this,
+            title = getString(R.string.merge_confirm_title, chosen.size),
+            subtitle = chosen.joinToString("\n") { "• ${it.name} (${resources.getQuantityString(R.plurals.products_count, it.products.size, it.products.size)})" },
+            badge = PopupBadge("🔗", ContextCompat.getColor(this, R.color.green_mid)),
+            actions = listOf(
+                PopupAction(getString(R.string.merge_action), R.drawable.ic_merge, green = true) { nameMergedList(chosen) },
+            ),
+            showClose = true,
+        )
     }
 
     /** Joins [chosen] into one list; "Deshacer" brings the original lists back for a few seconds. */
@@ -296,6 +302,7 @@ class ListsActivity : AppCompatActivity() {
             positiveLabel = R.string.merge_action,
         ) { name ->
             val result = repository.mergeLists(chosen.map { it.id }, name) ?: return@askListName
+            selectedIds.clear()
             render()
             showUndo(resources.getQuantityString(R.plurals.lists_merged, chosen.size, chosen.size, name)) {
                 repository.undoMerge(result)
