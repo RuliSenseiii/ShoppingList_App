@@ -65,6 +65,7 @@ object TutorialGuide {
             TutorialRequirement.ONE_LIST -> lists.any { it.products.isNotEmpty() }
             TutorialRequirement.TWO_LISTS -> lists.size >= 2
             TutorialRequirement.SHOP_LIST -> lists.any { it.products.size >= 2 }
+            TutorialRequirement.HOME_PRODUCT -> ListRepository.get(activity).homeList().products.isNotEmpty()
         }
         return if (ok) null else topic.requires.message
     }

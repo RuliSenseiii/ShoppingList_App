@@ -10,6 +10,22 @@ class ListFileFormatTest {
         ShoppingList(name = name, products = products.toMutableList())
 
     @Test
+    fun newCategoriesSurviveTheFile() {
+        val original = list(
+            "Casa",
+            Product(name = "Croissants", category = Category.BOLLERIA, quantity = 4.0),
+            Product(name = "Pizza", category = Category.PRECOCINADOS, quantity = 2.0),
+            Product(name = "Champú", category = Category.HIGIENE, quantity = 1.0),
+            Product(name = "Lejía", category = Category.LIMPIEZA, quantity = 1.0),
+            Product(name = "Barra", category = Category.PAN, quantity = 2.0),
+            Product(name = "Lentejas", category = Category.LEGUMBRES, quantity = 0.5),
+            Product(name = "Zanahorias", category = Category.HORTALIZAS, quantity = 1.5),
+        )
+        val read = ListFileFormat.read(ListFileFormat.write(original))!!
+        assertEquals(original.products.map { it.category }, read.products.map { it.category })
+    }
+
+    @Test
     fun writeThenRead_keepsNameProductsAndQuantities() {
         val original = list(
             "Compra del sábado",
@@ -31,7 +47,7 @@ class ListFileFormatTest {
             list("Cena", Product(name = "Macarrones", category = Category.PASTA_ARROZ, quantity = 0.5)),
         )
 
-        assertEquals("listacompra,1,Cena\r\nproducto,categoria,cantidad\r\nMacarrones,PASTA_ARROZ,0.5\r\n", text)
+        assertEquals("listacompra,1,Cena\r\nproducto,categoria,cantidad,unidad\r\nMacarrones,PASTA_ARROZ,0.5,\r\n", text)
     }
 
     @Test

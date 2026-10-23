@@ -132,8 +132,19 @@ object Popups {
      * Asks for a new quantity, using kg (decimals) or units depending on the product category.
      * [allowZero] is for the home count, where 0 means "no me queda".
      */
-    fun editQuantity(activity: Activity, product: Product, allowZero: Boolean = false, onSaved: (Double) -> Unit) {
-        val kilograms = product.category.usesKilograms
+    fun editQuantity(
+        activity: Activity,
+        product: Product,
+        allowZero: Boolean = false,
+        title: String? = null,
+        message: String? = null,
+        initial: Double? = null,
+        /** When given, the unit (kg / uds) can be switched in the dialog and this is told the new one. */
+        onUnitChosen: ((Boolean) -> Unit)? = null,
+        onSaved: (Double) -> Unit,
+    ) {
+        var kilograms = product.usesKilograms
+        val shown = product.copy(quantity = initial ?: product.quantity)
         val input = EditText(activity).apply {
             inputType = quantityInputType(kilograms)
             background = null
@@ -141,7 +152,7 @@ object Popups {
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(ContextCompat.getColor(activity, R.color.text_dark))
             hint = activity.getString(if (kilograms) R.string.quantity_kg_hint else R.string.quantity_units_hint)
-            setText(if (kilograms) product.formattedQuantity.removeSuffix(" kg") else product.quantity.toLong().toString())
+            setText(if (kilograms) shown.formattedQuantity.removeSuffix(" kg") else shown.quantity.toLong().toString())
             setSelection(text.length)
         }
         val field = LinearLayout(activity).apply {
@@ -151,10 +162,24 @@ object Popups {
             setPadding(activity.dp(16), 0, activity.dp(16), 0)
             addView(input, LinearLayout.LayoutParams(0, activity.dp(58), 1f))
             addView(TextView(activity).apply {
-                text = activity.getString(if (kilograms) R.string.unit_kg else R.string.unit_units)
                 textSize = 17f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(ContextCompat.getColor(activity, R.color.orange_dark))
+                showUnit(kilograms, switchable = onUnitChosen != null)
+                if (onUnitChosen != null) {
+                    setOnClickListener {
+                        // Switching unit keeps the number when it makes sense (units are whole numbers).
+                        val typed = input.text.toString().trim().replace(',', '.').toDoubleOrNull()
+                        kilograms = !kilograms
+                        input.inputType = quantityInputType(kilograms)
+                        input.hint = activity.getString(if (kilograms) R.string.quantity_kg_hint else R.string.quantity_units_hint)
+                        if (typed != null) {
+                            input.setText(if (kilograms && typed % 1.0 != 0.0) typed.toString().replace('.', ',') else Math.round(typed).toString())
+                            input.setSelection(input.text.length)
+                        }
+                        showUnit(kilograms, switchable = true)
+                    }
+                }
             })
         }
         val wrapper = LinearLayout(activity).apply {
@@ -162,7 +187,8 @@ object Popups {
             addView(field, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         }
         val dialog = MaterialAlertDialogBuilder(activity)
-            .setTitle("${product.category.emoji}  ${product.name}")
+            .setTitle(title ?: "${product.category.emoji}  ${product.name}")
+            .setMessage(message)
             .setView(wrapper)
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
@@ -174,6 +200,7 @@ object Popups {
                     Toast.makeText(activity, R.string.invalid_quantity, Toast.LENGTH_SHORT).show()
                 } else {
                     dialog.dismiss()
+                    if (kilograms != product.usesKilograms) onUnitChosen?.invoke(kilograms)
                     onSaved(value)
                 }
             }
@@ -191,9 +218,10 @@ fun Activity.showProductActions(listId: String, product: Product, onChanged: () 
     Popups.show(
         activity = this,
         title = product.name,
-        subtitle = "${product.category.label} · ${product.formattedQuantity}",
+        subtitle = "${product.category.label} · ${product.formattedQuantity}" +
+            if (product.minQuantity > 0.0) "\n" + getString(R.string.low_stock_subtitle, product.formattedMin) else "",
         badge = PopupBadge(product.category.emoji, ContextCompat.getColor(this, product.category.colorRes)),
-        actions = listOf(
+        actions = listOfNotNull(
             PopupAction(getString(R.string.delete_product), R.drawable.ic_delete, green = false) {
                 val deleted = repository.removeProduct(listId, product.id)
                 onChanged()
@@ -205,11 +233,31 @@ fun Activity.showProductActions(listId: String, product: Product, onChanged: () 
                 }
             },
             PopupAction(getString(R.string.edit_quantity), R.drawable.ic_edit, green = true) {
-                Popups.editQuantity(this, product, allowZero = listId == ShoppingList.HOME_LIST_ID) { quantity ->
+                Popups.editQuantity(
+                    this, product, allowZero = listId == ShoppingList.HOME_LIST_ID,
+                    onUnitChosen = { kilograms -> repository.setUnit(listId, product.id, kilograms) },
+                ) { quantity ->
                     repository.updateQuantity(listId, product.id, quantity)
+                    showLowStockNotices()
                     onChanged()
                 }
             },
+            // Only the home count has quantities that can run low.
+            if (listId != ShoppingList.HOME_LIST_ID) null else
+                PopupAction(getString(R.string.low_stock_action), R.drawable.ic_label, green = true, tutorialKey = "low_stock") {
+                    TutorialGuide.emit(this, "low_stock_dialog")
+                    Popups.editQuantity(
+                        this, product, allowZero = true,
+                        title = "🔔 ${product.name}",
+                        message = getString(R.string.low_stock_title) + "\n" + getString(R.string.low_stock_hint),
+                        initial = product.minQuantity,
+                    ) { minimum ->
+                        repository.setMinQuantity(product.id, minimum)
+                        showLowStockNotices()
+                        onChanged()
+                        TutorialGuide.emit(this, "low_stock_saved")
+                    }
+                },
         ),
         showClose = true,
     )
@@ -223,6 +271,16 @@ fun quantityInputType(kilograms: Boolean): Int =
  * Accepts "1,5" or "1.5" for kg and whole numbers for units. Returns null if not a positive amount
  * (or, with [allowZero], a negative one).
  */
+/** Writes "kg" or "uds"; when [switchable] it looks like a button (tapping it changes the unit). */
+fun TextView.showUnit(kilograms: Boolean, switchable: Boolean) {
+    text = context.getString(if (kilograms) R.string.unit_kg else R.string.unit_units) + if (switchable) "  ⇄" else ""
+    if (switchable) {
+        contentDescription = context.getString(R.string.unit_change)
+        background = roundedBackground(soft(ContextCompat.getColor(context, R.color.orange), 0x26), context.dp(100).toFloat())
+        setPadding(context.dp(12), context.dp(6), context.dp(12), context.dp(6))
+    }
+}
+
 fun parseQuantity(text: String, kilograms: Boolean, allowZero: Boolean = false): Double? {
     val value = text.trim().replace(',', '.').toDoubleOrNull() ?: return null
     if (value < 0.0 || (value == 0.0 && !allowZero)) return null

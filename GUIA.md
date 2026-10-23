@@ -1,6 +1,6 @@
 # 🛒 Guía de uso — Lista de la compra
 
-> Guía para usuarios. Versión de la app: **V0.7.1**.
+> Guía para usuarios. Versión de la app: **V0.8**.
 > Esta guía se actualiza con cada nueva versión o funcionalidad (ver el [historial de cambios](#-historial-de-cambios)).
 
 Dentro de la app también tienes un **tutorial interactivo**: pulsa el botón **?** de la pantalla principal y elige solo las partes que quieras aprender.
@@ -17,8 +17,11 @@ Dentro de la app también tienes un **tutorial interactivo**: pulsa el botón **
 6. [Voy a comprar](#6-voy-a-comprar)
 7. [Recuento en casa](#7-recuento-en-casa)
 8. [Compartir e importar listas](#8-compartir-e-importar-listas)
-9. [Tutorial dentro de la app](#9-tutorial-dentro-de-la-app)
-10. [Historial de cambios](#-historial-de-cambios)
+9. [Buscar y ordenar](#9-buscar-y-ordenar)
+10. [Cantidades rápidas y aviso de poco stock](#10-cantidades-rápidas-y-aviso-de-poco-stock)
+11. [Ajustes y copia de seguridad](#11-ajustes-y-copia-de-seguridad)
+12. [Tutorial dentro de la app](#12-tutorial-dentro-de-la-app)
+13. [Historial de cambios](#-historial-de-cambios)
 
 ---
 
@@ -33,6 +36,7 @@ Desde aquí accedes a todo, sin necesidad de desplazarte:
 | **Añadir producto** | Apuntar algo que se te acaba (va a "Productos que me faltan") |
 | **Recuento en casa** | Ver y editar lo que tienes en casa |
 | **VOY A COMPRAR** | Hacer la compra tachando productos |
+| **⚙** (arriba a la izquierda) | Ajustes: copia de seguridad y orden de las categorías |
 | **?** (arriba a la derecha) | Abrir el tutorial |
 
 En todas las demás pantallas, la flecha ← de arriba a la izquierda vuelve a la pantalla anterior.
@@ -41,7 +45,7 @@ En todas las demás pantallas, la flecha ← de arriba a la izquierda vuelve a l
 
 1. Pulsa **Crear nueva lista**.
 2. Escribe el **nombre del producto**. Si ya lo has usado antes, aparecerá en las sugerencias.
-3. Elige la **categoría** (pasta/arroz, carne, pescado, marisco, lácteos, conservas, verdura, fruta u otros). La categoría decide si se cuenta en **kilos** (pasta/arroz, carne, pescado, marisco) o en **unidades** (el resto).
+3. Elige la **categoría** (pasta/arroz, carne, pescado, marisco, lácteos, conservas, verdura, fruta, bollería, precocinados, higiene, limpieza, pan, legumbres, hortalizas u otros). La categoría decide si se cuenta en **kilos** (pasta/arroz, carne, pescado, marisco, legumbres, hortalizas) o en **unidades** (el resto).
 4. Escribe la **cantidad** y pulsa **Añadir**.
 5. Repite con cada producto. Al guardar, ponle un nombre a la lista.
 
@@ -50,6 +54,7 @@ En todas las demás pantallas, la flecha ← de arriba a la izquierda vuelve a l
 - Toca una lista para verla, separada por categorías.
 - Toca un producto para **cambiar su cantidad** o **eliminarlo**. Tras eliminar, **Deshacer** lo recupera durante unos segundos.
 - Cada lista tiene un lápiz para **renombrarla** y una papelera para **eliminarla** (te pedirá confirmación y también permite deshacer).
+- Arriba tienes un **buscador** (ver [Buscar y ordenar](#9-buscar-y-ordenar)).
 - **Importar lista** (botón de abajo) añade una lista que te hayan enviado.
 
 ## 4. Unir listas
@@ -82,7 +87,7 @@ Es la lista de lo que tienes en casa.
 - Puedes añadir productos a mano y **editar su cantidad** tocándolos.
 - Al terminar una compra, **lo comprado se suma solo**.
 - Al añadir un producto a otra lista, la app te indica **cuánto tienes en casa**.
-- Cuando la cantidad de un producto llega a **0, desaparece** del recuento.
+- Cuando la cantidad de un producto llega a **0, desaparece** del recuento (salvo que tenga un [aviso de poco stock](#10-cantidades-rápidas-y-aviso-de-poco-stock)).
 
 ## 8. Compartir e importar listas
 
@@ -95,9 +100,48 @@ Es la lista de lo que tienes en casa.
 
 La app te pregunta si quieres añadir la lista y, si aceptas, la guarda en tus listas.
 
-## 9. Tutorial dentro de la app
+## 9. Buscar y ordenar
 
-El botón **?** de la pantalla principal abre el tutorial en cualquier momento. Está formado por temas independientes (crear una lista, mis listas, unir listas, productos que me faltan, voy a comprar, recuento en casa y compartir e importar): elige solo el que te interese.
+**Buscar.** En *Mis listas* hay un buscador arriba: escribe parte del nombre de una lista **o de un producto** y solo se quedan las listas que coinciden (te muestra qué producto ha coincidido). También hay buscador dentro de cada lista, en el recuento en casa y al hacer la compra. No distingue mayúsculas ni tildes ("bolleria" encuentra "Bollería"). La ✕ borra la búsqueda.
+
+**Ordenar.** Dentro de una lista, del recuento en casa y al hacer la compra, el botón naranja junto al buscador permite elegir cómo ver los productos:
+
+| Orden | Cómo se ven |
+|---|---|
+| **Por categorías** | Agrupados por categoría, en el orden habitual |
+| **De la A a la Z** | Una sola lista alfabética |
+| **Ruta del súper** | Agrupados por categoría, en **el orden que tú elijas** |
+
+El orden elegido se recuerda. Para colocar las categorías como recorres el supermercado, pulsa **Orden de categorías** en ese mismo menú (o ve a ⚙ Ajustes) y mueve cada categoría con las flechas ▲ ▼. **Restablecer orden** vuelve al original.
+
+## 10. Cantidades rápidas y aviso de poco stock
+
+**Cambiar cantidades rápido.** En el **recuento en casa** y **al hacer la compra**, cada producto tiene botones **−** y **+** junto a su cantidad (en kilos suben o bajan un cuarto de kilo; en unidades, de uno en uno). Si prefieres escribirla, toca la cantidad y usa el teclado.
+
+- Cada producto se cuenta en **kilos** o en **unidades**: por defecto la de su categoría, pero puedes elegir la que prefieras para cada producto. Al añadirlo, toca la unidad (**kg ⇄** / **uds ⇄**) junto a la cantidad; al editar la cantidad de un producto también puedes cambiarla. La app recuerda la unidad que elegiste para ese producto.
+- Al hacer la compra, la cantidad nunca baja de un paso.
+- En casa puede llegar a 0: el producto desaparece del recuento (salvo que tenga aviso, ver abajo).
+
+**Aviso de poco stock.** En el recuento en casa, toca un producto y pulsa **Avisar si queda poco** para indicar con cuánta cantidad quieres que te avise (0 quita el aviso).
+
+- Los productos con aviso llevan una 🔔.
+- Cuando su cantidad baja a ese mínimo (o menos), el producto se apunta **solo** en *Productos que me faltan* y la app te lo dice. Se avisa una vez; si vuelves a tener más cantidad que el mínimo, el aviso se rearma.
+- Un producto con aviso que llega a 0 **se queda** en el recuento con 0, para no perder el aviso.
+
+## 11. Ajustes y copia de seguridad
+
+El botón **⚙** de la pantalla principal abre los ajustes:
+
+- **Guardar copia de seguridad:** guarda todas tus listas, el recuento en casa y tus ajustes de orden en un archivo `.json`. Elige dónde guardarlo (en el móvil, en Drive...).
+- **Restaurar copia de seguridad:** elige un archivo de copia y confirma. **Sustituye** todo lo que tengas ahora por el contenido de la copia (la app conserva una copia de seguridad interna de lo que había). Si el archivo no es una copia de la app, no se cambia nada.
+- **Orden de las categorías:** el orden usado por *Ruta del súper*.
+- **Notas de la app:** qué trajo cada versión, con las novedades y lo que se ha cambiado. Es la última opción de los ajustes.
+
+Es la forma de pasar tus datos a otro móvil: guarda la copia, mueve el archivo y restáurala allí.
+
+## 12. Tutorial dentro de la app
+
+El botón **?** de la pantalla principal abre el tutorial en cualquier momento. Está formado por temas independientes (crear una lista, mis listas, unir listas, productos que me faltan, voy a comprar, recuento en casa, buscar y ordenar, cambiar cantidades rápido, aviso de poco stock, copia de seguridad y compartir e importar): elige solo el que te interese.
 
 Al elegir un tema, la app te lleva a la pantalla principal y te guía **por la propia app**:
 
@@ -116,6 +160,7 @@ La primera vez que abres la app sin tener listas, te ofrece ver el tutorial.
 
 | Versión | Novedades |
 |---|---|
+| **V0.8** | Nuevas categorías (Bollería, Precocinados, Higiene, Limpieza y Pan en unidades; Legumbres y Hortalizas en kilos). Buscador, orden de productos (por categorías, A-Z o ruta del súper con categorías ordenables), unidad kg / uds a elegir para cada producto, botones − / + y cantidad con teclado, aviso de poco stock que apunta solo en *Productos que me faltan*, y copia de seguridad con ajustes y "Notas de la app" con las novedades de cada versión. Cuatro temas nuevos en el tutorial |
 | **V0.7.1** | El tutorial ahora te guía por la propia app: ilumina los botones y avanza cuando haces lo que indica; puedes salir en cualquier momento |
 | **V0.7** | Tutorial dentro de la app (botón **?**) y esta guía de uso |
 | **V0.6.1** | Los productos del recuento en casa desaparecen al llegar a 0 |
@@ -126,4 +171,4 @@ La primera vez que abres la app sin tener listas, te ofrece ver el tutorial.
 | **V0.2** | Compartir listas |
 | **V0.1** | Crear listas, añadir productos y hacer la compra |
 
-> **Para quien mantiene la guía:** en cada versión, actualiza la cabecera ("Versión de la app"), las secciones afectadas, una fila nueva en el historial y los temas del tutorial (`ui/Tutorial.kt`).
+> **Para quien mantiene la guía:** en cada versión, actualiza la cabecera ("Versión de la app"), las secciones afectadas, una fila nueva en el historial, los temas del tutorial (`ui/Tutorial.kt`) y las notas de la app (`ui/ReleaseNotes.kt`).

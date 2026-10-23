@@ -7,7 +7,13 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.example.shoppinglist.data.ListRepository
+import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.ProductListRenderer
+import com.example.shoppinglist.ui.QuantityActions
+import com.example.shoppinglist.ui.matchesSearch
+import com.example.shoppinglist.ui.setupSearchBar
+import com.example.shoppinglist.ui.showLowStockNotices
+import com.example.shoppinglist.ui.showSortOptions
 import com.example.shoppinglist.ui.TutorialGuide
 import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.addEmptyState
@@ -29,6 +35,7 @@ class ListDetailActivity : AppCompatActivity(), TutorialScreen {
 
     private lateinit var listId: String
     private lateinit var content: LinearLayout
+    private var query = ""
     private val repository by lazy { ListRepository.get(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +44,10 @@ class ListDetailActivity : AppCompatActivity(), TutorialScreen {
         applySystemBarInsets()
         listId = intent.getStringExtra(EXTRA_LIST_ID) ?: return finish()
         content = findViewById(R.id.content)
+        setupSearchBar(onSort = { showSortOptions { render() } }) { text ->
+            query = text
+            render()
+        }
 
         findViewById<MaterialButton>(R.id.btnBottom).apply {
             visibility = View.VISIBLE
@@ -52,6 +63,7 @@ class ListDetailActivity : AppCompatActivity(), TutorialScreen {
         super.onResume()
         render()
         TutorialGuide.attach(this)
+        showLowStockNotices()
     }
 
     private fun render() {
@@ -63,10 +75,34 @@ class ListDetailActivity : AppCompatActivity(), TutorialScreen {
                 shareList(list)
             }
         }
-        ProductListRenderer.render(content, list.products) { product ->
+        val shown = list.products.filter { it.name.matchesSearch(query) }
+        // At home the quantities can be changed quickly: - and + buttons, or typing the number.
+        val quantityActions = if (!list.isHomeList) null else QuantityActions(
+            onStep = { product, direction ->
+                repository.stepQuantity(listId, product.id, direction)
+                showLowStockNotices()
+                render()
+                TutorialGuide.emit(this, "quantity_stepped")
+            },
+            onTap = { product ->
+                TutorialGuide.emit(this, "quantity_dialog")
+                Popups.editQuantity(
+                    this, product, allowZero = true,
+                    onUnitChosen = { kilograms -> repository.setUnit(listId, product.id, kilograms) },
+                ) { quantity ->
+                    repository.updateQuantity(listId, product.id, quantity)
+                    showLowStockNotices()
+                    render()
+                    TutorialGuide.emit(this, "quantity_saved")
+                }
+            },
+        )
+        ProductListRenderer.render(content, shown, onProductClick = { product ->
             showProductActions(listId, product) { render() }
-        }
-        if (list.products.isEmpty() && list.isHomeList) {
+        }, quantityActions = quantityActions)
+        if (list.products.isNotEmpty() && shown.isEmpty()) {
+            content.addEmptyState("🔎", getString(R.string.search_no_results))
+        } else if (list.products.isEmpty() && list.isHomeList) {
             content.addEmptyState("🏠", getString(R.string.home_empty), getString(R.string.home_empty_hint))
         } else if (list.products.isEmpty()) {
             content.addEmptyState(if (list.isMissingList) "✅" else "🧺", getString(R.string.empty_list), getString(R.string.empty_list_hint))

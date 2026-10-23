@@ -26,6 +26,8 @@ import com.example.shoppinglist.data.Category
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.ShoppingList
 import com.example.shoppinglist.ui.PopupAction
+import com.example.shoppinglist.ui.matchesSearch
+import com.example.shoppinglist.ui.setupSearchBar
 import com.example.shoppinglist.ui.TutorialGuide
 import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.PopupBadge
@@ -66,6 +68,7 @@ class ListsActivity : AppCompatActivity(), TutorialScreen {
     }
     private lateinit var content: LinearLayout
     private val selectedIds = linkedSetOf<String>()
+    private var query = ""
     private val repository by lazy { ListRepository.get(this) }
 
     private val pickListFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -79,6 +82,10 @@ class ListsActivity : AppCompatActivity(), TutorialScreen {
         mode = Mode.valueOf(intent.getStringExtra(EXTRA_MODE) ?: Mode.MANAGE.name)
         setupTopBar(getString(if (mode == Mode.SHOP) R.string.choose_list_title else R.string.my_lists_title))
         content = findViewById(R.id.content)
+        setupSearchBar { text ->
+            query = text
+            render()
+        }
 
         if (savedInstanceState == null) importFromIntent()
     }
@@ -120,10 +127,13 @@ class ListsActivity : AppCompatActivity(), TutorialScreen {
 
     private fun render() {
         content.removeAllViews()
-        if (mode == Mode.MANAGE) addCard(repository.missingList())
+        val everyList = repository.userLists()
+        selectedIds.retainAll(everyList.map { it.id }.toSet())
+        // With a search, only the lists whose name or products match it.
+        val matches = { list: ShoppingList -> list.name.matchesSearch(query) || list.products.any { it.name.matchesSearch(query) } }
+        if (mode == Mode.MANAGE && repository.missingList().let(matches)) addCard(repository.missingList())
 
-        val lists = repository.userLists()
-        selectedIds.retainAll(lists.map { it.id }.toSet())
+        val lists = everyList.filter(matches)
         // Lists the tutorial points at: the first two, and the first one with enough products to use.
         val fullEnough = lists.firstOrNull { it.products.size >= if (mode == Mode.SHOP) 2 else 1 }
         lists.forEachIndexed { index, list ->
@@ -135,7 +145,11 @@ class ListsActivity : AppCompatActivity(), TutorialScreen {
         }
         updateBottomButton()
 
-        if (lists.isEmpty()) content.addEmptyState("📝", getString(R.string.no_lists))
+        if (everyList.isEmpty()) {
+            content.addEmptyState("📝", getString(R.string.no_lists))
+        } else if (lists.isEmpty()) {
+            content.addEmptyState("🔎", getString(R.string.search_no_results))
+        }
     }
 
     /** Selection mode (checkboxes visible) lasts while at least one list is ticked; it starts with a long press. */
@@ -217,6 +231,18 @@ class ListsActivity : AppCompatActivity(), TutorialScreen {
             textSize = 14f
             setTextColor(ContextCompat.getColor(context, R.color.text_muted))
         })
+        // With a search, which of the products matched.
+        val found = if (query.isBlank()) emptyList() else list.products.filter { it.name.matchesSearch(query) }.map { it.name }
+        if (found.isNotEmpty()) {
+            texts.addView(TextView(this).apply {
+                text = getString(R.string.search_found_in, found.take(3).joinToString(", "))
+                textSize = 14f
+                setTypeface(typeface, Typeface.BOLD)
+                setTextColor(ContextCompat.getColor(context, R.color.orange_dark))
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            })
+        }
         // Emojis of the categories in the list, as a quick preview.
         val inCart = list.products.count { it.id in list.inCart }
         if (mode == Mode.SHOP && inCart > 0) {

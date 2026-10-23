@@ -32,8 +32,10 @@ import com.example.shoppinglist.ui.ProductListRenderer
 import com.example.shoppinglist.ui.applySystemBarInsets
 import com.example.shoppinglist.ui.dp
 import com.example.shoppinglist.ui.parseQuantity
+import com.example.shoppinglist.ui.showUnit
 import com.example.shoppinglist.ui.quantityInputType
 import com.example.shoppinglist.ui.setupTopBar
+import com.example.shoppinglist.ui.showLowStockNotices
 import com.example.shoppinglist.ui.showProductActions
 import com.example.shoppinglist.ui.soft
 import com.google.android.material.button.MaterialButton
@@ -80,6 +82,10 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
     private var newListName: String? = null
     private var selectedCategory: Category? = null
 
+    /** The unit chosen for this product when it is not the one of its category; null = the category's. */
+    private var selectedKilograms: Boolean? = null
+    private val kilograms: Boolean get() = selectedKilograms ?: (selectedCategory?.usesKilograms ?: false)
+
     private lateinit var etName: AutoCompleteTextView
     private lateinit var categoryGrid: LinearLayout
     private lateinit var etQuantity: EditText
@@ -120,7 +126,11 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
         setupSuggestions()
         val restoredCategory = savedInstanceState?.getString(STATE_CATEGORY)
             ?.let { name -> Category.entries.firstOrNull { it.name == name } }
-        selectCategory(restoredCategory, moveToQuantity = false)
+        selectCategory(
+            restoredCategory, moveToQuantity = false,
+            unit = when (savedInstanceState?.getString(STATE_UNIT)) { "kg" -> true; "uds" -> false; else -> null },
+        )
+        tvUnit.setOnClickListener { toggleUnit() }
         etQuantity.doAfterTextChanged { updateAddButton() }
         btnAdd.setOnClickListener { addProduct() }
 
@@ -136,6 +146,7 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
         outState.putString(STATE_LIST_ID, listId)
         outState.putString(STATE_NEW_LIST_NAME, newListName)
         outState.putString(STATE_CATEGORY, selectedCategory?.name)
+        outState.putString(STATE_UNIT, when (selectedKilograms) { true -> "kg"; false -> "uds"; null -> "" })
     }
 
     /** Suggestions of products used before, shown as "emoji name" under the name field. */
@@ -147,14 +158,14 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
         nameRow.post { etName.dropDownWidth = nameRow.width }
         etName.setOnItemClickListener { parent, _, position, _ ->
             val suggestion = parent.getItemAtPosition(position) as ProductSuggestion
-            selectCategory(suggestion.category, moveToQuantity = true)
+            selectCategory(suggestion.category, moveToQuantity = true, unit = suggestion.kilograms)
         }
         etName.doAfterTextChanged { text ->
             // Typing a known product in full also picks its category, unless one is already chosen.
             if (selectedCategory == null) {
                 val typed = text.toString().trim()
                 repository.suggestions().firstOrNull { it.name.equals(typed, ignoreCase = true) }
-                    ?.let { selectCategory(it.category, moveToQuantity = false) }
+                    ?.let { selectCategory(it.category, moveToQuantity = false, unit = it.kilograms) }
             }
             renderAtHome()
             updateAddButton()
@@ -184,6 +195,13 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                         if (index > 0) marginStart = dp(8)
                     },
+                )
+            }
+            // An incomplete last row keeps the buttons the same width as the others.
+            repeat(GRID_COLUMNS - rowCategories.size) {
+                row.addView(
+                    View(this),
+                    LinearLayout.LayoutParams(0, 0, 1f).apply { marginStart = dp(8) },
                 )
             }
             categoryGrid.addView(
@@ -243,22 +261,23 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
         }
     }
 
-    private fun selectCategory(category: Category?, moveToQuantity: Boolean) {
+    private fun selectCategory(category: Category?, moveToQuantity: Boolean, unit: Boolean? = null) {
         selectedCategory = category
+        selectedKilograms = if (category == null) null else unit?.takeIf { it != category.usesKilograms }
         renderCategoryGrid()
         if (category == null) {
             quantityRow.visibility = View.GONE
             etQuantity.text.clear()
         } else {
-            val newInputType = quantityInputType(category.usesKilograms)
+            val newInputType = quantityInputType(kilograms)
             if (etQuantity.inputType != newInputType) {
                 etQuantity.text.clear()
                 etQuantity.inputType = newInputType
             }
             etQuantity.hint = getString(
-                if (category.usesKilograms) R.string.quantity_kg_hint else R.string.quantity_units_hint
+                if (kilograms) R.string.quantity_kg_hint else R.string.quantity_units_hint
             )
-            tvUnit.text = getString(if (category.usesKilograms) R.string.unit_kg else R.string.unit_units)
+            tvUnit.showUnit(kilograms, switchable = true)
             quantityRow.visibility = View.VISIBLE
             if (moveToQuantity) {
                 etName.dismissDropDown()
@@ -269,9 +288,20 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
         updateAddButton()
     }
 
+    /** Switches this product between kilos and units, whatever its category says. */
+    private fun toggleUnit() {
+        val category = selectedCategory ?: return
+        selectedKilograms = (!kilograms).takeIf { it != category.usesKilograms }
+        etQuantity.text.clear()
+        etQuantity.inputType = quantityInputType(kilograms)
+        etQuantity.hint = getString(if (kilograms) R.string.quantity_kg_hint else R.string.quantity_units_hint)
+        tvUnit.showUnit(kilograms, switchable = true)
+        updateAddButton()
+    }
+
     private fun currentQuantity(): Double? {
         val category = selectedCategory ?: return null
-        return parseQuantity(etQuantity.text.toString(), category.usesKilograms, allowZero = mode == Mode.HOME)
+        return parseQuantity(etQuantity.text.toString(), kilograms, allowZero = mode == Mode.HOME)
     }
 
     private fun updateAddButton() {
@@ -286,7 +316,8 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
         val name = etName.text.toString().trim().replaceFirstChar { it.uppercase() }
 
         val targetId = listId ?: repository.createList(newListName ?: defaultListName()).id.also { listId = it }
-        repository.addProduct(targetId, Product(name = name, category = category, quantity = quantity))
+        repository.addProduct(targetId, Product(name = name, category = category, quantity = quantity, kilograms = selectedKilograms))
+        showLowStockNotices()
         val message = if (mode == Mode.HOME) getString(R.string.saved_at_home) else getString(R.string.added_to, targetName())
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
@@ -306,9 +337,9 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
         val list = listId?.let { repository.get(it) }
         val products = list?.products.orEmpty()
         tvCurrentTitle.visibility = if (products.isEmpty()) View.GONE else View.VISIBLE
-        ProductListRenderer.render(content, products) { product ->
+        ProductListRenderer.render(content, products, onProductClick = { product ->
             showProductActions(list!!.id, product) { renderTarget() }
-        }
+        })
     }
 
     private fun defaultListName(): String =
@@ -334,6 +365,7 @@ class AddProductActivity : AppCompatActivity(), TutorialScreen {
         private const val STATE_LIST_ID = "state_list_id"
         private const val STATE_NEW_LIST_NAME = "state_new_list_name"
         private const val STATE_CATEGORY = "state_category"
+        private const val STATE_UNIT = "state_unit"
         private const val GRID_COLUMNS = 3
 
         fun editListIntent(context: Context, listId: String): Intent =

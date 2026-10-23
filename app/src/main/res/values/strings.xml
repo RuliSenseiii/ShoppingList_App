@@ -71,6 +71,7 @@
     <string name="form_title">¿Qué necesitas?</string>
     <string name="unit_kg">kg</string>
     <string name="unit_units">uds</string>
+    <string name="unit_change">Cambiar entre kg y uds</string>
     <string name="cart_progress_title">🛒 En el carro</string>
     <string name="cart_progress_count">%1$d / %2$d</string>
     <string name="list_completed_sub">¡Todo en el carro! Lo comprado se sumará a tu recuento en casa. ¿Qué quieres hacer con la lista?</string>
@@ -135,6 +136,55 @@
     <string name="tutorial_offer_sub">Te enseña a usar la app paso a paso. Podrás abrirlo siempre desde el botón ? de la pantalla principal.</string>
     <string name="tutorial_offer_yes">Ver tutorial</string>
     <string name="tutorial_offer_no">Ahora no</string>
+
+    <!-- V0.8 -->
+    <string name="search_hint">Buscar</string>
+    <string name="search_clear">Borrar búsqueda</string>
+    <string name="search_no_results">Nada coincide con tu búsqueda.</string>
+    <string name="search_found_in">🔎 %1$s</string>
+    <string name="sort_title">Ordenar productos</string>
+    <string name="sort_by_category">Por categorías</string>
+    <string name="sort_alphabetical">De la A a la Z</string>
+    <string name="sort_route">Ruta del súper</string>
+    <string name="sort_edit_order">Orden de categorías</string>
+    <string name="sort_alphabetical_header">De la A a la Z</string>
+    <string name="category_order_title">Orden de las categorías</string>
+    <string name="category_order_hint">Este orden se usa en \"Ruta del súper\": ponlas como recorres el supermercado.</string>
+    <string name="category_order_reset">Restablecer orden</string>
+    <string name="category_move_up">Subir</string>
+    <string name="category_move_down">Bajar</string>
+    <string name="quantity_less">Quitar uno</string>
+    <string name="quantity_more">Añadir uno</string>
+    <string name="low_stock_action">Avisar si queda poco</string>
+    <string name="low_stock_title">Avisar cuando queden…</string>
+    <string name="low_stock_hint">Pon 0 para quitar el aviso.</string>
+    <string name="low_stock_subtitle">🔔 Aviso: %1$s o menos</string>
+    <plurals name="low_stock_added">
+        <item quantity="one">🔔 %2$s añadido a \"Productos que me faltan\"</item>
+        <item quantity="other">🔔 %1$d productos añadidos a \"Productos que me faltan\"</item>
+    </plurals>
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_open">Abrir ajustes</string>
+    <string name="settings_backup">Guardar copia de seguridad</string>
+    <string name="settings_backup_sub">Guarda todas tus listas en un archivo</string>
+    <string name="settings_restore">Restaurar copia de seguridad</string>
+    <string name="settings_restore_sub">Recupera tus listas desde un archivo</string>
+    <string name="settings_order">Orden de las categorías</string>
+    <string name="settings_order_sub">Elige cómo recorres el súper</string>
+    <string name="settings_notes">Notas de la app</string>
+    <string name="settings_notes_sub">Novedades y cambios de cada versión</string>
+    <string name="release_notes_title">Notas de la app</string>
+    <string name="release_notes_installed">Versión instalada: %1$s</string>
+    <string name="release_notes_current">Actual</string>
+    <string name="release_notes_new">✨ Novedades</string>
+    <string name="release_notes_changed">🔧 Cambios</string>
+    <string name="backup_saved">Copia guardada</string>
+    <string name="backup_failed">No se ha podido guardar la copia.</string>
+    <string name="restore_question">¿Restaurar esta copia?</string>
+    <string name="restore_sub">Se sustituirán todas tus listas y tu recuento en casa por los de la copia.</string>
+    <string name="restore_action">Restaurar</string>
+    <string name="restore_done">Copia restaurada</string>
+    <string name="restore_invalid">Ese archivo no es una copia de seguridad de la app.</string>
 
     <string name="empty_list_hint">Pulsa \"Añadir producto\" para empezar a llenarla.</string>
 </resources>

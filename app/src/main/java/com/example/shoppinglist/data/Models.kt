@@ -8,13 +8,33 @@ data class Product(
     val name: String,
     val category: Category,
     val quantity: Double,
+    /** Only in the home count: when the quantity falls to this or less, the product is noted as missing. 0 = no alert. */
+    val minQuantity: Double = 0.0,
+    /** The alert for [minQuantity] has already been raised; cleared once the quantity is above it again. */
+    val lowAlerted: Boolean = false,
+    /** The unit the user chose for this product: true = kilos, false = units, null = the one of its category. */
+    val kilograms: Boolean? = null,
 ) {
+    /** Counted in kilos (with decimals) or in units, whatever the category says unless the user chose otherwise. */
+    val usesKilograms: Boolean get() = kilograms ?: category.usesKilograms
+
+    /** The same product counted in kilos or in units; choosing what the category already uses clears the override. */
+    fun withUnit(kilos: Boolean): Product = copy(kilograms = if (kilos == category.usesKilograms) null else kilos)
+
     /** "1,5 kg" for weighed categories, "3 uds" for the rest. */
-    val formattedQuantity: String
-        get() = if (category.usesKilograms) {
-            "${formatNumber(quantity)} kg"
+    val formattedQuantity: String get() = format(quantity)
+
+    /** [minQuantity] written like [formattedQuantity]. */
+    val formattedMin: String get() = format(minQuantity)
+
+    /** How much one tap on + or − changes the quantity: a quarter of a kilo, or one unit. */
+    val step: Double get() = if (usesKilograms) 0.25 else 1.0
+
+    private fun format(value: Double): String =
+        if (usesKilograms) {
+            "${formatNumber(value)} kg"
         } else {
-            val units = quantity.toLong()
+            val units = value.toLong()
             if (units == 1L) "1 ud" else "$units uds"
         }
 
@@ -25,7 +45,7 @@ data class Product(
 }
 
 /** A product used before, offered while typing a new one. [toString] is what the field filters on. */
-data class ProductSuggestion(val name: String, val category: Category) {
+data class ProductSuggestion(val name: String, val category: Category, val kilograms: Boolean? = null) {
     override fun toString(): String = name
 }
 
@@ -49,7 +69,8 @@ data class ShoppingList(
     /** Adds the product, summing the quantity if the same product is already in the list. */
     fun addOrMerge(product: Product) {
         val index = products.indexOfFirst {
-            it.category == product.category && it.name.equals(product.name.trim(), ignoreCase = true)
+            it.category == product.category && it.usesKilograms == product.usesKilograms &&
+                it.name.equals(product.name.trim(), ignoreCase = true)
         }
         if (index >= 0) {
             val existing = products[index]

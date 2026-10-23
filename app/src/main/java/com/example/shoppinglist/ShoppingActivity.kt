@@ -16,6 +16,10 @@ import com.example.shoppinglist.ui.PopupAction
 import com.example.shoppinglist.ui.PopupBadge
 import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.ProductListRenderer
+import com.example.shoppinglist.ui.QuantityActions
+import com.example.shoppinglist.ui.matchesSearch
+import com.example.shoppinglist.ui.setupSearchBar
+import com.example.shoppinglist.ui.showSortOptions
 import com.example.shoppinglist.ui.TutorialGuide
 import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.addEmptyState
@@ -39,6 +43,7 @@ class ShoppingActivity : AppCompatActivity(), TutorialScreen {
     private lateinit var content: LinearLayout
 
     private var reviewing = false
+    private var query = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +53,10 @@ class ShoppingActivity : AppCompatActivity(), TutorialScreen {
         content = findViewById(R.id.content)
 
         reviewing = savedInstanceState?.getBoolean(STATE_REVIEWING) ?: false
+        setupSearchBar(onSort = { showSortOptions { render() } }) { text ->
+            query = text
+            render()
+        }
         render()
 
         if (savedInstanceState == null) {
@@ -94,7 +103,27 @@ class ShoppingActivity : AppCompatActivity(), TutorialScreen {
         val inCart = if (reviewing) emptySet() else list.products.map { it.id }.filter { it in list.inCart }.toSet()
 
         val onClick: ((Product) -> Unit)? = if (reviewing) null else ::onProductClick
-        ProductListRenderer.render(content, list.products, inCart, onClick)
+        val shown = list.products.filter { it.name.matchesSearch(query) }
+        // While shopping the quantity can be corrected on the spot: - and + buttons, or typing the number.
+        val quantityActions = if (reviewing) null else QuantityActions(
+            onStep = { product, direction ->
+                repository.stepQuantity(listId, product.id, direction)
+                render()
+            },
+            onTap = { product ->
+                Popups.editQuantity(
+                    this, product,
+                    onUnitChosen = { kilograms -> repository.setUnit(listId, product.id, kilograms) },
+                ) { quantity ->
+                    repository.updateQuantity(listId, product.id, quantity)
+                    render()
+                }
+            },
+        )
+        ProductListRenderer.render(content, shown, inCart, onClick, quantityActions)
+        if (list.products.isNotEmpty() && shown.isEmpty()) {
+            content.addEmptyState("🔎", getString(R.string.search_no_results))
+        }
 
         if (list.products.isEmpty()) {
             content.addEmptyState("🧺", getString(R.string.empty_list))

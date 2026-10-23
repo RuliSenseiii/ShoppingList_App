@@ -29,5 +29,12 @@
     <color name="cat_conservas">#FF6D4C41</color>
     <color name="cat_verdura">#FF2E7D32</color>
     <color name="cat_fruta">#FFD81B60</color>
+    <color name="cat_bolleria">#FFB5651D</color>
+    <color name="cat_precocinados">#FFF9A825</color>
+    <color name="cat_higiene">#FF8E24AA</color>
+    <color name="cat_limpieza">#FF3949AB</color>
+    <color name="cat_pan">#FFC49A6C</color>
+    <color name="cat_legumbres">#FF9E9D24</color>
+    <color name="cat_hortalizas">#FFD84315</color>
     <color name="cat_otros">#FF546E7A</color>
 </resources>

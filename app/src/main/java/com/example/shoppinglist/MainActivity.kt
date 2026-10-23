@@ -13,6 +13,7 @@ import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.TutorialGuide
 import com.example.shoppinglist.ui.TutorialScreen
 import com.example.shoppinglist.ui.applySystemBarInsets
+import com.example.shoppinglist.ui.showLowStockNotices
 
 class MainActivity : AppCompatActivity(), TutorialScreen {
 
@@ -40,6 +41,9 @@ class MainActivity : AppCompatActivity(), TutorialScreen {
         }
         findViewById<View>(R.id.btnGoShopping).setOnClickListener {
             startActivity(ListsActivity.intent(this, ListsActivity.Mode.SHOP))
+        }
+        findViewById<View>(R.id.btnSettings).setOnClickListener {
+            startActivity(SettingsActivity.intent(this))
         }
         findViewById<View>(R.id.btnTutorial).setOnClickListener {
             startActivity(TutorialActivity.intent(this))
@@ -95,5 +99,6 @@ class MainActivity : AppCompatActivity(), TutorialScreen {
             if (atHome == 0) getString(R.string.banner_home_empty)
             else resources.getQuantityString(R.plurals.banner_home_sub, atHome, atHome)
         TutorialGuide.attach(this)
+        showLowStockNotices()
     }
 }

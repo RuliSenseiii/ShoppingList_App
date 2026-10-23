@@ -52,6 +52,9 @@
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ShoppingActivity" />
         <activity android:name=".TutorialActivity" />
+        <activity android:name=".SettingsActivity" />
+        <activity android:name=".CategoryOrderActivity" />
+        <activity android:name=".ReleaseNotesActivity" />
 
         <!-- Lets chat apps read the ".listacompra" file being sent. -->
         <provider

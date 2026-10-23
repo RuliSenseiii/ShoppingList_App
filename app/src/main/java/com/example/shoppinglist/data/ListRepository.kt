@@ -16,12 +16,16 @@ import java.util.UUID
  */
 class ListRepository private constructor(context: Context) {
 
+    private val appContext: Context = context.applicationContext
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val missingListName = context.getString(com.example.shoppinglist.R.string.missing_list_name)
     private val homeListName = context.getString(com.example.shoppinglist.R.string.home_list_name)
 
     private val lists: MutableList<ShoppingList> = load()
+
+    /** Products just added to "Productos que me faltan" because they ran low at home; see [takeLowStockNotices]. */
+    private val lowStockNotices = mutableListOf<String>()
 
     /** Products used before, most recent first, keyed by lowercase name. */
     private val history: LinkedHashMap<String, ProductSuggestion> = loadHistory()
@@ -147,7 +151,9 @@ class ListRepository private constructor(context: Context) {
         val home = homeList()
         val index = home.products.indexOfFirst { it.name.equals(product.name.trim(), ignoreCase = true) }
         if (index >= 0) {
-            home.products[index] = home.products[index].copy(category = product.category, quantity = product.quantity)
+            home.products[index] = home.products[index].copy(
+                category = product.category, quantity = product.quantity, kilograms = product.kilograms,
+            )
         } else {
             home.products.add(product)
         }
@@ -165,9 +171,11 @@ class ListRepository private constructor(context: Context) {
             val index = home.indexOfFirst { it.name.equals(product.name.trim(), ignoreCase = true) }
             when {
                 index < 0 -> home.add(product.copy(id = UUID.randomUUID().toString()))
-                home[index].category.usesKilograms == product.category.usesKilograms ->
+                home[index].usesKilograms == product.usesKilograms ->
                     home[index] = home[index].copy(quantity = home[index].quantity + product.quantity)
-                else -> home[index] = home[index].copy(category = product.category, quantity = product.quantity)
+                else -> home[index] = home[index].copy(
+                    category = product.category, quantity = product.quantity, kilograms = product.kilograms,
+                )
             }
         }
         save()
@@ -179,7 +187,7 @@ class ListRepository private constructor(context: Context) {
         if (index < 0) return
         val atHome = products[index]
         // Only when both are counted the same way (kg or units).
-        if (atHome.category.usesKilograms != product.category.usesKilograms) return
+        if (atHome.usesKilograms != product.usesKilograms) return
         products[index] = atHome.copy(quantity = (atHome.quantity - product.quantity).coerceAtLeast(0.0))
     }
 
@@ -207,6 +215,72 @@ class ListRepository private constructor(context: Context) {
         list.products.add(deleted.index.coerceAtMost(list.products.size), deleted.product)
         if (deleted.wasInCart) list.inCart.add(deleted.product.id)
         save()
+    }
+
+    /**
+     * Changes the quantity by one step (a quarter of a kilo, or one unit), up or down.
+     * Outside the home count the quantity never goes below one step; at home it can reach 0.
+     * Returns the new quantity.
+     */
+    fun stepQuantity(listId: String, productId: String, direction: Int): Double? {
+        val products = get(listId)?.products ?: return null
+        val index = products.indexOfFirst { it.id == productId }
+        if (index < 0) return null
+        val product = products[index]
+        val floor = if (listId == ShoppingList.HOME_LIST_ID) 0.0 else product.step
+        val next = (Math.round((product.quantity + direction * product.step) * 1000) / 1000.0).coerceAtLeast(floor)
+        products[index] = product.copy(quantity = next)
+        save()
+        return next
+    }
+
+    /** Counts the product in kilos or in units from now on, whatever its category says. */
+    fun setUnit(listId: String, productId: String, kilograms: Boolean) {
+        val products = get(listId)?.products ?: return
+        val index = products.indexOfFirst { it.id == productId }
+        if (index < 0) return
+        products[index] = products[index].withUnit(kilograms)
+        save()
+    }
+
+    /** Sets (or, with 0, removes) the quantity at which a home product is noted as missing. */
+    fun setMinQuantity(productId: String, minQuantity: Double) {
+        val products = homeList().products
+        val index = products.indexOfFirst { it.id == productId }
+        if (index < 0) return
+        products[index] = products[index].copy(minQuantity = minQuantity, lowAlerted = false)
+        save()
+    }
+
+    /** Names of the products noted as missing since the last call, so the screen can tell the user. */
+    fun takeLowStockNotices(): List<String> = lowStockNotices.toList().also { lowStockNotices.clear() }
+
+    /**
+     * The home-count rules, applied before every save:
+     *  - A product at or below its minimum is noted in "Productos que me faltan" (once, until it is above the minimum again).
+     *  - A product that ran out disappears, unless it has a minimum: it stays at 0 so the alert is not lost.
+     */
+    private fun applyHomeRules() {
+        val home = lists.firstOrNull { it.isHomeList } ?: return
+        var missing = lists.firstOrNull { it.isMissingList }
+        for (i in home.products.indices) {
+            val product = home.products[i]
+            if (product.minQuantity <= 0.0) continue
+            if (product.quantity > product.minQuantity) {
+                if (product.lowAlerted) home.products[i] = product.copy(lowAlerted = false)
+            } else if (!product.lowAlerted) {
+                if (missing == null) {
+                    missing = ShoppingList(id = ShoppingList.MISSING_LIST_ID, name = missingListName).also { lists.add(0, it) }
+                }
+                // Already noted by the user: nothing to add, and no second alert.
+                if (missing.findByName(product.name) == null) {
+                    missing.products.add(product.copy(id = UUID.randomUUID().toString(), quantity = maxOf(product.minQuantity, product.step), minQuantity = 0.0, lowAlerted = false))
+                    lowStockNotices.add(product.name)
+                }
+                home.products[i] = product.copy(lowAlerted = true)
+            }
+        }
+        home.products.removeAll { it.quantity <= 0.0 && it.minQuantity <= 0.0 }
     }
 
     fun updateQuantity(listId: String, productId: String, quantity: Double) {
@@ -246,6 +320,49 @@ class ListRepository private constructor(context: Context) {
         save()
     }
 
+    /** Everything the app stores (lists, home count, suggestions and sort settings) as one JSON text. */
+    fun exportBackup(): String {
+        save()
+        val (sort, order) = ViewSettings.export(appContext)
+        return JSONObject()
+            .put("app", BACKUP_MARKER)
+            .put("version", 1)
+            .put("lists", JSONArray(prefs.getString(KEY_LISTS, "[]")))
+            .put("history", JSONArray(prefs.getString(KEY_HISTORY, "[]")))
+            .put("settings", JSONObject().put("sort", sort ?: JSONObject.NULL).put("categoryOrder", order ?: JSONObject.NULL))
+            .toString(2)
+    }
+
+    /**
+     * Replaces everything with the content of a backup made by [exportBackup].
+     * Returns false, leaving the current data untouched, if [text] is not a backup.
+     * The data replaced is kept once as a safety copy.
+     */
+    fun importBackup(text: String): Boolean {
+        val backup = try {
+            JSONObject(text).takeIf { it.optString("app") == BACKUP_MARKER && it.optJSONArray("lists") != null }
+        } catch (e: Exception) {
+            null
+        } ?: return false
+        val settings = backup.optJSONObject("settings")
+        prefs.edit {
+            putString(KEY_BACKUP, prefs.getString(KEY_LISTS, null))
+            putString(KEY_LISTS, backup.getJSONArray("lists").toString())
+            putString(KEY_HISTORY, (backup.optJSONArray("history") ?: JSONArray()).toString())
+        }
+        ViewSettings.restore(
+            appContext,
+            settings?.optString("sort")?.takeIf { it.isNotEmpty() && it != "null" },
+            settings?.optString("categoryOrder")?.takeIf { it.isNotEmpty() && it != "null" },
+        )
+        lists.clear()
+        lists.addAll(load())
+        history.clear()
+        history.putAll(loadHistory())
+        lowStockNotices.clear()
+        return true
+    }
+
     /** Products used before, most recent first. */
     fun suggestions(): List<ProductSuggestion> = history.values.toList()
 
@@ -256,13 +373,12 @@ class ListRepository private constructor(context: Context) {
         history.remove(key)
         val older = history.entries.take(MAX_HISTORY - 1).map { it.toPair() }
         history.clear()
-        history[key] = ProductSuggestion(product.name.trim(), product.category)
+        history[key] = ProductSuggestion(product.name.trim(), product.category, product.kilograms)
         older.forEach { (k, v) -> history[k] = v }
     }
 
     private fun save() {
-        // A product that ran out at home no longer shows in the home count.
-        lists.firstOrNull { it.isHomeList }?.products?.removeAll { it.quantity <= 0.0 }
+        applyHomeRules()
         val array = JSONArray()
         lists.forEach { list ->
             val products = JSONArray()
@@ -272,7 +388,11 @@ class ListRepository private constructor(context: Context) {
                         .put("id", p.id)
                         .put("name", p.name)
                         .put("category", p.category.name)
-                        .put("quantity", p.quantity)
+                        .apply {
+                            put("quantity", p.quantity)
+                            if (p.minQuantity > 0.0) put("min", p.minQuantity).put("alerted", p.lowAlerted)
+                            if (p.kilograms != null) put("unit", unitName(p.kilograms))
+                        }
                 )
             }
             // Only ids still in the list, so deleted products do not linger in the cart.
@@ -288,7 +408,7 @@ class ListRepository private constructor(context: Context) {
             )
         }
         val historyJson = JSONArray()
-        history.values.forEach { historyJson.put(JSONArray().put(it.name).put(it.category.name)) }
+        history.values.forEach { historyJson.put(JSONArray().put(it.name).put(it.category.name).put(unitName(it.kilograms))) }
         prefs.edit {
             putString(KEY_LISTS, array.toString())
             putString(KEY_HISTORY, historyJson.toString())
@@ -324,6 +444,9 @@ class ListRepository private constructor(context: Context) {
                                 name = p.getString("name"),
                                 category = Category.valueOf(p.getString("category")),
                                 quantity = p.getDouble("quantity"),
+                                minQuantity = p.optDouble("min", 0.0),
+                                lowAlerted = p.optBoolean("alerted", false),
+                                kilograms = unitFromName(p.optString("unit")),
                             )
                         )
                     } catch (e: Exception) {
@@ -351,22 +474,36 @@ class ListRepository private constructor(context: Context) {
                 val item = array.optJSONArray(i) ?: continue
                 val name = item.optString(0).trim()
                 val category = Category.entries.firstOrNull { it.name == item.optString(1) } ?: continue
-                if (name.isNotEmpty()) history.putIfAbsent(name.lowercase(), ProductSuggestion(name, category))
+                if (name.isNotEmpty()) history.putIfAbsent(name.lowercase(), ProductSuggestion(name, category, unitFromName(item.optString(2))))
             }
         } catch (e: Exception) {
             Log.w(TAG, "Product history is unreadable; rebuilding it from the lists", e)
         }
         lists.flatMap { it.products }.forEach {
-            history.putIfAbsent(it.name.trim().lowercase(), ProductSuggestion(it.name.trim(), it.category))
+            history.putIfAbsent(it.name.trim().lowercase(), ProductSuggestion(it.name.trim(), it.category, it.kilograms))
         }
         return history
     }
 
     companion object {
+        /** "kg", "uds" or empty (the category's own unit), as saved. */
+        private fun unitName(kilograms: Boolean?) = when (kilograms) {
+            true -> "kg"
+            false -> "uds"
+            null -> ""
+        }
+
+        private fun unitFromName(name: String?): Boolean? = when (name?.trim()?.lowercase()) {
+            "kg" -> true
+            "uds" -> false
+            else -> null
+        }
+
         private const val PREFS_NAME = "shopping_lists"
         private const val KEY_LISTS = "lists"
         private const val KEY_HISTORY = "product_history"
         private const val KEY_BACKUP = "lists_backup"
+        private const val BACKUP_MARKER = "listacompra-backup"
         private const val MAX_HISTORY = 300
         private const val TAG = "ListRepository"
 

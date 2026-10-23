@@ -17,6 +17,13 @@ enum class Category(
     CONSERVAS("🥫", "Conservas", R.color.cat_conservas, false),
     VERDURA("🥬", "Verdura", R.color.cat_verdura, false),
     FRUTA("🍎", "Fruta", R.color.cat_fruta, false),
+    BOLLERIA("🥐", "Bollería", R.color.cat_bolleria, false),
+    PRECOCINADOS("🍕", "Precocinados", R.color.cat_precocinados, false),
+    HIGIENE("🧴", "Higiene", R.color.cat_higiene, false),
+    LIMPIEZA("🧽", "Limpieza", R.color.cat_limpieza, false),
+    PAN("🍞", "Pan", R.color.cat_pan, false),
+    LEGUMBRES("🥜", "Legumbres", R.color.cat_legumbres, true),
+    HORTALIZAS("🥕", "Hortalizas", R.color.cat_hortalizas, true),
     OTROS("🛒", "Otros", R.color.cat_otros, false);
 
     val displayName: String get() = "$emoji $label"

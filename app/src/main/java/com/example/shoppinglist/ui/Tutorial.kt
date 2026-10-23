@@ -6,6 +6,7 @@ enum class TutorialRequirement(val message: String) {
     ONE_LIST("Para este tema necesitas al menos una lista con productos. Haz primero el tema \"Crear una lista\"."),
     TWO_LISTS("Para este tema necesitas al menos dos listas. Haz primero el tema \"Crear una lista\" y crea otra."),
     SHOP_LIST("Para este tema necesitas una lista con al menos dos productos. Añade productos a una lista y vuelve."),
+    HOME_PRODUCT("Para este tema necesitas productos en el recuento en casa. Haz primero el tema \"Recuento en casa\"."),
 }
 
 /**
@@ -49,7 +50,7 @@ object Tutorial {
     /** The three steps shared by every "add a product" form: name, category and quantity. */
     private fun productForm(screen: String, nameText: String, quantityText: String) = listOf(
         TutorialStep(screen, "nameRow", nameText, "name_typed"),
-        TutorialStep(screen, "categoryGrid", "Toca la categoría del producto. Define si se cuenta en kilos o en unidades.", "category_selected"),
+        TutorialStep(screen, "categoryGrid", "Toca la categoría del producto. Ella decide si se cuenta en kilos o en unidades, aunque luego puedes cambiarlo.", "category_selected"),
         TutorialStep(screen, "quantityRow", quantityText, "quantity_ready"),
         TutorialStep(screen, "btnAdd", "Pulsa \"Añadir\" para guardar el producto.", "product_added"),
     )
@@ -121,6 +122,46 @@ object Tutorial {
                 TutorialStep(DETAIL, "btnBack", "Pulsa ← otra vez para volver a la pantalla principal.", "screen:main"),
             ),
             outro = "Tu recuento se actualiza solo: al terminar una compra se suma lo comprado, y cuando un producto llega a 0 desaparece.",
+        ),
+        TutorialTopic(
+            "🔎", "Buscar y ordenar", "Encuentra productos y elige el orden", green = false, TutorialRequirement.ONE_LIST,
+            steps = listOf(
+                TutorialStep(MAIN, "bannerMyLists", "Pulsa \"Ver mis listas de la compra\".", "screen:$MANAGE"),
+                TutorialStep(MANAGE, "searchRow", "Escribe parte del nombre de una lista o de un producto. Solo se quedan las que coinciden.", "search_typed"),
+                TutorialStep(MANAGE, "btnClearSearch", "Pulsa la ✕ para borrar la búsqueda y ver todas las listas.", "search_cleared"),
+                TutorialStep(MANAGE, "list_card_full", "Abre una lista.", "screen:$DETAIL"),
+                TutorialStep(DETAIL, "btnSort", "Pulsa el botón de ordenar.", "sort_opened"),
+                TutorialStep(DETAIL, "popup_close", "Elige cómo ver los productos: por categorías, de la A a la Z o por la ruta del súper. También puedes cerrarlo con la ✕.", "popup_closed", inDialog = true),
+            ),
+            outro = "En cualquier lista puedes buscar y ordenar. Para colocar las categorías como recorres el súper, ve a ⚙ Ajustes → \"Orden de las categorías\".",
+        ),
+        TutorialTopic(
+            "➕", "Cambiar cantidades rápido", "Con + y − o con el teclado", green = true, TutorialRequirement.HOME_PRODUCT,
+            steps = listOf(
+                TutorialStep(MAIN, "bannerHome", "Pulsa \"Recuento en casa\".", "screen:$DETAIL"),
+                TutorialStep(DETAIL, "qty_plus", "Pulsa + para sumar uno (en kilos, sube un cuarto). El botón − resta.", "quantity_stepped"),
+                TutorialStep(DETAIL, "qty_value", "Toca la cantidad para escribirla con el teclado.", "quantity_dialog"),
+                TutorialStep(DETAIL, "dialog_positive", "Escribe la cantidad y pulsa \"Guardar\".", "quantity_saved", inDialog = true),
+            ),
+            outro = "Los botones + y − también están al hacer la compra, para corregir una cantidad al momento.",
+        ),
+        TutorialTopic(
+            "🔔", "Aviso de poco stock", "Apunta solo lo que se acaba", green = false, TutorialRequirement.HOME_PRODUCT,
+            steps = listOf(
+                TutorialStep(MAIN, "bannerHome", "Pulsa \"Recuento en casa\".", "screen:$DETAIL"),
+                TutorialStep(DETAIL, "product_row", "Toca un producto.", "product_popup"),
+                TutorialStep(DETAIL, "popup_low_stock", "Pulsa \"Avisar si queda poco\".", "low_stock_dialog", inDialog = true),
+                TutorialStep(DETAIL, "dialog_positive", "Escribe con cuánto quieres que te avise y pulsa \"Guardar\". Un 0 quita el aviso.", "low_stock_saved", inDialog = true),
+            ),
+            outro = "Cuando ese producto llegue a esa cantidad, se apuntará solo en \"Productos que me faltan\". Los productos con aviso llevan una 🔔 en el recuento.",
+        ),
+        TutorialTopic(
+            "💾", "Copia de seguridad", "Guarda tus listas en un archivo", green = true, TutorialRequirement.NONE,
+            steps = listOf(
+                TutorialStep(MAIN, "btnSettings", "Pulsa el botón de ajustes ⚙.", "screen:settings"),
+                TutorialStep("settings", "settings_backup", "Pulsa \"Guardar copia de seguridad\" y elige dónde guardarla.", "backup_opened"),
+            ),
+            outro = "Para recuperar tus datos (por ejemplo en otro móvil), ve a ⚙ Ajustes → \"Restaurar copia de seguridad\" y elige el archivo.",
         ),
         TutorialTopic(
             "📤", "Compartir e importar", "Envía listas a otras personas", green = true, TutorialRequirement.ONE_LIST,

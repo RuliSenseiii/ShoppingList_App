@@ -7,9 +7,13 @@ import java.util.Locale
  * opened with a spreadsheet:
  *
  *     listacompra,1,"Compra del finde"
- *     producto,categoria,cantidad
- *     Pollo,CARNE,1.5
- *     "Galletas, sin azúcar",OTROS,2
+ *     producto,categoria,cantidad,unidad
+ *     Pollo,CARNE,1.5,
+ *     "Galletas, sin azúcar",OTROS,2,
+ *     Pan,PAN,1.5,kg
+ *
+ * "unidad" is only filled when the user chose kilos ("kg") or units ("uds") for a product instead of
+ * the one of its category; older versions ignore that column.
  *
  * The first line identifies the file and its format version.
  */
@@ -20,7 +24,8 @@ object ListFileFormat {
 
     private const val MAGIC = "listacompra"
     private const val VERSION = 1
-    private const val HEADER = "producto,categoria,cantidad"
+    private const val HEADER = "producto,categoria,cantidad,unidad"
+    private const val OLD_HEADER = "producto,categoria,cantidad"
     private const val MAX_PRODUCTS = 500
     private const val MAX_NAME_LENGTH = 80
 
@@ -33,7 +38,8 @@ object ListFileFormat {
         list.products.forEach { p ->
             append(csvField(p.name)).append(',')
             append(p.category.name).append(',')
-            append(formatQuantity(p.quantity)).append("\r\n")
+            append(formatQuantity(p.quantity)).append(',')
+            append(when (p.kilograms) { true -> "kg"; false -> "uds"; null -> "" }).append("\r\n")
         }
     }
 
@@ -44,9 +50,11 @@ object ListFileFormat {
         if (first.getOrNull(0)?.trim() != MAGIC) return null
         val name = first.getOrNull(2).orEmpty().trim().take(MAX_NAME_LENGTH)
         val products = rows.drop(1)
-            .filterNot { it.joinToString(",").trim().equals(HEADER, ignoreCase = true) }
+            .filterNot { row -> row.joinToString(",").trim().trimEnd(',').let { it.equals(HEADER, true) || it.equals(OLD_HEADER, true) } }
             .take(MAX_PRODUCTS)
-            .mapNotNull { row -> sharedProduct(row.getOrNull(0), row.getOrNull(1), row.getOrNull(2)?.trim()?.toDoubleOrNull()) }
+            .mapNotNull { row ->
+                sharedProduct(row.getOrNull(0), row.getOrNull(1), row.getOrNull(2)?.trim()?.toDoubleOrNull(), row.getOrNull(3))
+            }
         return if (name.isEmpty() && products.isEmpty()) null else SharedList(name, products)
     }
 
@@ -54,14 +62,22 @@ object ListFileFormat {
      * Builds a product received from someone else, or null if it is not usable. Shared with the text
      * code of V0.2/V0.3 so both are checked the same way.
      */
-    fun sharedProduct(name: String?, categoryName: String?, quantity: Double?): Product? {
+    fun sharedProduct(name: String?, categoryName: String?, quantity: Double?, unit: String? = null): Product? {
         val productName = name.orEmpty().trim().take(MAX_NAME_LENGTH)
         // An unknown category (e.g. from a newer version of the app) falls back to "Otros".
         val category = Category.entries.firstOrNull { it.name == categoryName?.trim() } ?: Category.OTROS
         var amount = quantity ?: return null
-        if (!category.usesKilograms) amount = Math.round(amount).toDouble()
+        val chosen = when (unit?.trim()?.lowercase()) {
+            "kg" -> true
+            "uds" -> false
+            else -> null
+        }
+        val product = Product(name = productName, category = category, quantity = amount).let { p ->
+            if (chosen == null) p else p.withUnit(chosen)
+        }
+        if (!product.usesKilograms) amount = Math.round(amount).toDouble()
         if (productName.isEmpty() || amount.isNaN() || amount <= 0.0 || amount > 1_000_000) return null
-        return Product(name = productName, category = category, quantity = amount)
+        return product.copy(quantity = amount)
     }
 
     /** File name for [list], without characters that are not allowed in file names. */
