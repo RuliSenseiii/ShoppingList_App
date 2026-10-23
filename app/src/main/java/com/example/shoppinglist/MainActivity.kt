@@ -6,6 +6,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.shoppinglist.data.ListRepository
 import com.example.shoppinglist.data.ShoppingList
+import androidx.core.content.ContextCompat
+import com.example.shoppinglist.ui.PopupAction
+import com.example.shoppinglist.ui.PopupBadge
+import com.example.shoppinglist.ui.Popups
 import com.example.shoppinglist.ui.applySystemBarInsets
 
 class MainActivity : AppCompatActivity() {
@@ -32,6 +36,40 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnGoShopping).setOnClickListener {
             startActivity(ListsActivity.intent(this, ListsActivity.Mode.SHOP))
         }
+        findViewById<View>(R.id.btnTutorial).setOnClickListener {
+            startActivity(TutorialActivity.intent(this))
+        }
+        if (savedInstanceState == null) offerTutorialOnFirstLaunch()
+    }
+
+    /** New users are asked once; the tutorial stays available from the "?" button either way. */
+    private fun offerTutorialOnFirstLaunch() {
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_TUTORIAL_OFFERED, false)) return
+        // Someone updating the app already has lists: do not interrupt them.
+        if (repository.userLists().isNotEmpty()) {
+            prefs.edit().putBoolean(KEY_TUTORIAL_OFFERED, true).apply()
+            return
+        }
+        prefs.edit().putBoolean(KEY_TUTORIAL_OFFERED, true).apply()
+        Popups.show(
+            activity = this,
+            title = getString(R.string.tutorial_offer_title),
+            subtitle = getString(R.string.tutorial_offer_sub),
+            badge = PopupBadge("👋", ContextCompat.getColor(this, R.color.green)),
+            actions = listOf(
+                PopupAction(getString(R.string.tutorial_offer_yes), R.drawable.ic_help, green = true) {
+                    startActivity(TutorialActivity.intent(this))
+                },
+                PopupAction(getString(R.string.tutorial_offer_no), R.drawable.ic_cancel, green = false) {},
+            ),
+            showClose = false,
+        )
+    }
+
+    private companion object {
+        const val PREFS = "app_state"
+        const val KEY_TUTORIAL_OFFERED = "tutorial_offered"
     }
 
     override fun onResume() {

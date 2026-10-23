@@ -120,5 +120,18 @@
         <item quantity="other">%1$d listas unidas en \"%2$s\"</item>
     </plurals>
 
+    <!-- V0.7 tutorial -->
+    <string name="tutorial_title">Tutorial</string>
+    <string name="tutorial_help">Abrir el tutorial</string>
+    <string name="tutorial_intro">Elige lo que quieras aprender. Puedes ver solo las partes que te interesen y volver aquí cuando quieras.</string>
+    <string name="tutorial_step_count">Paso %1$d de %2$d</string>
+    <string name="tutorial_next">Siguiente</string>
+    <string name="tutorial_previous">Anterior</string>
+    <string name="tutorial_finish">Terminar</string>
+    <string name="tutorial_offer_title">¿Quieres ver el tutorial?</string>
+    <string name="tutorial_offer_sub">Te enseña a usar la app paso a paso. Podrás abrirlo siempre desde el botón ? de la pantalla principal.</string>
+    <string name="tutorial_offer_yes">Ver tutorial</string>
+    <string name="tutorial_offer_no">Ahora no</string>
+
     <string name="empty_list_hint">Pulsa \"Añadir producto\" para empezar a llenarla.</string>
 </resources>
