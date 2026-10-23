@@ -158,7 +158,8 @@ class ListRepository private constructor(context: Context) {
      * counted yet. If it was counted the other way (kg / units) the bought amount replaces it.
      */
     fun addBoughtToHome(listId: String) {
-        val bought = get(listId)?.takeUnless { it.isHomeList }?.products ?: return
+        val list = get(listId)?.takeUnless { it.isHomeList } ?: return
+        val bought = list.products.filter { it.id in list.inCart }
         val home = homeList().products
         bought.forEach { product ->
             val index = home.indexOfFirst { it.name.equals(product.name.trim(), ignoreCase = true) }
@@ -229,6 +230,14 @@ class ListRepository private constructor(context: Context) {
     fun setInCart(listId: String, productId: String, inCart: Boolean) {
         val list = get(listId) ?: return
         if (inCart) list.inCart.add(productId) else list.inCart.remove(productId)
+        save()
+    }
+
+    /** Takes the products in the cart out of the list; what was not bought stays for next time. */
+    fun removeBought(listId: String) {
+        val list = get(listId) ?: return
+        list.products.removeAll { it.id in list.inCart }
+        list.inCart.clear()
         save()
     }
 

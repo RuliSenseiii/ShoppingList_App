@@ -91,7 +91,57 @@ class ShoppingActivity : AppCompatActivity() {
         } else if (!reviewing) {
             content.addView(progressCard(inCart.size, list.products.size), 0)
         }
-        if (reviewing) addDeleteListButton()
+        if (reviewing) addDeleteListButton() else if (inCart.isNotEmpty()) addFinishButton(inCart.size, list.products.size)
+    }
+
+    /** The shopping can end at any moment, even with products still out of the cart. */
+    private fun addFinishButton(done: Int, total: Int) {
+        val button = gradientButton(this, getString(R.string.finish_shopping), R.drawable.ic_check, green = true).apply {
+            setOnClickListener { if (done < total) confirmFinish(done, total) else checkCompleted() }
+        }
+        content.addView(
+            button,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(60)).apply { topMargin = dp(28) },
+        )
+    }
+
+    private fun confirmFinish(done: Int, total: Int) {
+        Popups.show(
+            activity = this,
+            title = getString(R.string.finish_shopping_question),
+            subtitle = getString(R.string.finish_shopping_sub, done, total),
+            badge = PopupBadge("🛒", ContextCompat.getColor(this, R.color.green)),
+            actions = listOf(
+                PopupAction(getString(R.string.yes), R.drawable.ic_check, green = true) {
+                    // Counted and taken out of the list right away, so leaving afterwards never counts it twice.
+                    addBoughtToHome()
+                    repository.removeBought(listId)
+                    render()
+                    showLeftoverOptions()
+                },
+                PopupAction(getString(R.string.no), R.drawable.ic_cancel, green = false) {},
+            ),
+            showClose = false,
+        )
+    }
+
+    /** The list now only has what was not bought. */
+    private fun showLeftoverOptions() {
+        Popups.show(
+            activity = this,
+            title = getString(R.string.shopping_finished),
+            subtitle = getString(R.string.shopping_finished_sub),
+            badge = PopupBadge("🛒", ContextCompat.getColor(this, R.color.green)),
+            actions = listOf(
+                PopupAction(getString(R.string.review_list), R.drawable.ic_visibility, green = true) {
+                    reviewing = true
+                    render()
+                },
+                PopupAction(getString(R.string.save_list), R.drawable.ic_check, green = true) { goHome() },
+                PopupAction(getString(R.string.delete_list), R.drawable.ic_delete, green = false) { deleteListAndGoHome() },
+            ),
+            showClose = false,
+        )
     }
 
     /** "🛒 En el carro  3 / 7" with a progress bar, shown above the list while shopping. */
@@ -165,6 +215,10 @@ class ShoppingActivity : AppCompatActivity() {
     private fun checkCompleted() {
         val list = repository.get(listId) ?: return
         if (list.products.isEmpty() || !list.products.all { it.id in list.inCart }) return
+        showFinishOptions()
+    }
+
+    private fun showFinishOptions() {
         Popups.show(
             activity = this,
             title = getString(R.string.list_completed),
@@ -203,6 +257,10 @@ class ShoppingActivity : AppCompatActivity() {
 
     private fun deleteListAndGoHome() {
         repository.deleteList(listId)
+        goHome()
+    }
+
+    private fun goHome() {
         startActivity(
             Intent(this, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)

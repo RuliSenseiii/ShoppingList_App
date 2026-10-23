@@ -49,6 +49,12 @@
     <string name="missing">Falta</string>
     <string name="list_completed">Has completado la lista</string>
     <string name="delete_list">Eliminar Lista</string>
+    <string name="finish_shopping">Terminar compra</string>
+    <string name="finish_shopping_question">¿Terminar la compra?</string>
+    <string name="finish_shopping_sub">Llevas %1$d de %2$d productos en el carro. Solo lo que está en el carro se sumará a tu recuento en casa.</string>
+    <string name="shopping_finished">Compra terminada</string>
+    <string name="shopping_finished_sub">Lo comprado ya está en tu recuento en casa y la lista conserva solo lo que falta. ¿Qué quieres hacer con ella?</string>
+    <string name="save_list">Guardar Lista</string>
     <string name="review_list">Revisar Lista</string>
     <string name="main_subtitle">Planifica, compra y tacha sin complicaciones</string>
     <string name="banner_new_list_sub">Empieza una lista desde cero</string>

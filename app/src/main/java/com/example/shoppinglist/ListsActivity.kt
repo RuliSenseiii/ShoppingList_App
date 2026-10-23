@@ -99,6 +99,15 @@ class ListsActivity : AppCompatActivity() {
         render()
     }
 
+    override fun onBackPressed() {
+        if (selecting) {
+            selectedIds.clear()
+            render()
+        } else {
+            super.onBackPressed()
+        }
+    }
+
     private fun render() {
         content.removeAllViews()
         if (mode == Mode.MANAGE) addCard(repository.missingList())
@@ -109,6 +118,14 @@ class ListsActivity : AppCompatActivity() {
         updateBottomButton()
 
         if (lists.isEmpty()) content.addEmptyState("📝", getString(R.string.no_lists))
+    }
+
+    /** Selection mode (checkboxes visible) lasts while at least one list is ticked; it starts with a long press. */
+    private val selecting get() = mode == Mode.MANAGE && selectedIds.isNotEmpty()
+
+    private fun toggle(list: ShoppingList) {
+        if (!selectedIds.remove(list.id)) selectedIds.add(list.id)
+        render()
     }
 
     /** MANAGE mode: "Unir listas" while 2 or more lists are ticked, otherwise "Importar lista". */
@@ -139,18 +156,16 @@ class ListsActivity : AppCompatActivity() {
             setPadding(dp(16), dp(16), dp(12), dp(16))
             isClickable = true
             isFocusable = true
-            setOnClickListener { open(list) }
+            setOnClickListener { if (selecting && !missing) toggle(list) else open(list) }
+            if (mode == Mode.MANAGE && !missing) setOnLongClickListener { toggle(list); true }
         }
 
-        if (mode == Mode.MANAGE && !missing) {
+        if (selecting && !missing) {
             card.addView(CheckBox(this).apply {
                 isChecked = list.id in selectedIds
                 buttonTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.green_mid))
                 contentDescription = list.name
-                setOnCheckedChangeListener { _, checked ->
-                    if (checked) selectedIds.add(list.id) else selectedIds.remove(list.id)
-                    updateBottomButton()
-                }
+                setOnClickListener { toggle(list) }
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 marginEnd = dp(8)
             })
